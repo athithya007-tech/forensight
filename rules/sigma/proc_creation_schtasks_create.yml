@@ -1,0 +1,23 @@
+title: Scheduled Task Created Via Schtasks Pointing To User Folder
+id: 0d5c6a9e-8a51-4c4f-b7d1-2f6e8c9b1a22
+status: experimental
+description: schtasks /create whose action lives in Temp, AppData or Public (ForenSight sample rule)
+author: ForenSight
+tags:
+  - attack.persistence
+  - attack.t1053.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains: '/create'
+  susp_path:
+    CommandLine|contains:
+      - '\AppData\'
+      - '\Temp\'
+      - '\Users\Public\'
+      - 'powershell'
+  condition: selection and susp_path
+level: high

@@ -1,0 +1,4 @@
+# Offline IP reputation list. Add IPs from your threat feeds here.
+# Documentation ranges used as examples (RFC 5737):
+203.0.113.66
+198.51.100.23

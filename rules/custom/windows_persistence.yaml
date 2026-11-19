@@ -1,0 +1,123 @@
+id: FS-WIN-005
+title: New local account created
+kind: evtx
+attck_id: T1136
+severity: High
+confidence: 0.9
+event_type: user_created
+match: {Channel: Security, EventID: 4720}
+description: "Account {TargetUserName} created by {SubjectUserName}"
+baseline: {category: users, key: "{TargetUserName}"}
+playbook:
+  - Disable the new account and check what it was used for
+  - Review who holds rights to create accounts on this host
+---
+id: FS-WIN-006
+title: User added to Administrators
+kind: evtx
+attck_id: T1098
+severity: High
+confidence: 0.9
+event_type: admin_added
+match:
+  Channel: Security
+  EventID: [4732, 4728, 4756]
+  any:
+    - {TargetSid: "S-1-5-32-544"}
+    - {TargetUserName|re: "^(administrators|domain admins|enterprise admins)$"}
+description: "{MemberName} added to {TargetUserName} by {SubjectUserName}"
+baseline: {category: groups, key: "Administrators:{MemberName}"}
+playbook:
+  - Remove the account from the Administrators group
+  - Audit all privileged group memberships against the approved list
+---
+id: FS-WIN-007
+title: Service installed from a user-writable path
+kind: evtx
+attck_id: T1543.003
+severity: High
+confidence: 0.85
+event_type: service_installed
+match:
+  EventID: 7045
+  ImagePath|re: "(\\\\Users\\\\|\\\\Temp\\\\|\\\\AppData\\\\|\\\\ProgramData\\\\|\\\\Downloads\\\\|\\\\Public\\\\|powershell|cmd(\\.exe)? /c)"
+filter:
+  # tuned on the clean baseline: Defender platform updates install from ProgramData
+  ImagePath|re: "(?i)\\\\ProgramData\\\\Microsoft\\\\Windows Defender\\\\"
+description: "Service {ServiceName} installed: {ImagePath}"
+baseline: {category: services, key: "{ServiceName}"}
+playbook:
+  - Stop and disable the service, then collect its binary for analysis
+  - Check service creation rights (SeCreateServicePrivilege) and who used them
+---
+id: FS-CTX-SVC
+title: Service installed
+kind: evtx
+context: true
+event_type: service_installed
+match: {EventID: 7045}
+description: "Service {ServiceName} installed: {ImagePath}"
+---
+id: FS-WIN-008
+title: Event log cleared
+kind: evtx
+attck_id: T1070.001
+severity: High
+confidence: 0.95
+event_type: log_cleared
+match:
+  any:
+    - {EventID: 1102}
+    - {EventID: 104, Channel: System}
+description: "Event log cleared by {SubjectUserName}"
+playbook:
+  - Treat the host as compromised; logs before this point may be incomplete
+  - Forward event logs to a SIEM so clearing them locally does not destroy evidence
+---
+id: FS-WIN-009
+title: Run key points to Temp/AppData
+kind: runkey
+attck_id: T1547.001
+severity: High
+confidence: 0.85
+event_type: runkey_persistence
+match:
+  value|re: "(\\\\Temp\\\\|\\\\AppData\\\\|\\\\Users\\\\Public\\\\|\\\\Downloads\\\\|powershell|mshta|wscript)"
+filter:
+  value|re: "(?i)\\\\Microsoft\\\\(OneDrive|Teams)\\\\|\\\\AppData\\\\Local\\\\Programs\\\\(Microsoft VS Code|Zoom)"
+description: "Run key {name} → {value}"
+baseline: {category: run_keys, key: "{key}\\{name}"}
+playbook:
+  - Delete the Run value and quarantine the file it launches
+  - Search other hosts for the same Run value name
+---
+id: FS-WIN-010
+title: Scheduled task created during incident window
+kind: evtx
+attck_id: T1053.005
+severity: High
+confidence: 0.8
+event_type: task_created
+in_window: true
+match: {EventID: [4698, 106]}
+description: "Scheduled task {TaskName} created by {SubjectUserName}{UserContext}"
+baseline: {category: tasks, key: "{TaskName}"}
+playbook:
+  - Export the task XML, then disable and delete the task
+  - Hash and analyse the binary/script the task runs
+---
+id: FS-WIN-014
+title: Scheduled task runs from a user-writable path
+kind: task
+attck_id: T1053.005
+severity: Medium
+confidence: 0.7
+event_type: task_suspicious_action
+match:
+  action|re: "(\\\\Temp\\\\|\\\\AppData\\\\|\\\\Users\\\\Public\\\\|powershell.*-(enc|w hidden)|mshta)"
+filter:
+  name|re: "(?i)^\\\\Microsoft\\\\|OneDrive"
+description: "Task {name} runs {action}"
+baseline: {category: tasks, key: "{name}"}
+playbook:
+  - Disable the task and analyse its action target

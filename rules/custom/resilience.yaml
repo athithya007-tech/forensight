@@ -1,0 +1,120 @@
+# Fallback detections. Attackers clear the Security log (step 8 of the lab attack), which erases
+# 4625/4624/4720/4732/4698. These rules recover the same techniques from logs and state the attacker
+# did not wipe. `fallback: true` = only reported when no primary rule found the same technique.
+id: FS-WIN-015
+title: RDP password guessing (RdpCoreTS)
+kind: evtx
+attck_id: T1110
+severity: High
+confidence: 0.85
+fallback: true
+event_type: rdp_brute_force
+match: {EventID: 140, Channel|contains: RdpCoreTS}
+threshold: {count: 5, window: 5m, group_by: IPString}
+burst_label: "failed RDP authentication from {IPString}"
+description: "{count} failed RDP authentications from {IPString} ({first}-{last} UTC)"
+playbook:
+  - Block the source IP and restrict RDP exposure
+  - Reset passwords of accounts targeted from this IP
+---
+id: FS-WIN-016
+title: Remote Desktop session logon
+kind: evtx
+attck_id: T1078
+severity: Medium
+confidence: 0.7
+fallback: true
+event_type: rdp_logon
+match:
+  EventID: [21, 25]
+  Channel|contains: LocalSessionManager
+  Address|re: "^\\d+\\.\\d+\\.\\d+\\.\\d+$"
+description: "RDP session for {User} from {Address} (event {EventID})"
+dedupe: "{User}{Address}"
+playbook:
+  - Confirm with the account owner whether this RDP session was expected
+---
+id: FS-WIN-017
+title: Account created from the command line
+kind: [evtx, process]
+attck_id: T1136
+severity: High
+confidence: 0.8
+fallback: true
+event_type: user_created
+match:
+  cmdline|re: "net1?(\\.exe)?\\s+user\\s+(\\S+)\\s+\\S+\\s+/add|New-LocalUser"
+description: "Account created: {cmdline}"
+dedupe: "{cmdline}"
+playbook:
+  - Disable the new account and check what it was used for
+---
+id: FS-WIN-018
+title: Account added to Administrators from the command line
+kind: [evtx, process]
+attck_id: T1098
+severity: High
+confidence: 0.8
+fallback: true
+event_type: admin_added
+match:
+  cmdline|re: "net1?(\\.exe)?\\s+localgroup\\s+administrators\\s+\\S+\\s+/add|Add-LocalGroupMember.*Administrators"
+description: "Administrators membership changed: {cmdline}"
+dedupe: "{cmdline}"
+playbook:
+  - Remove the account from the Administrators group
+---
+id: FS-DIFF-001
+title: New account since baseline
+kind: diff
+attck_id: T1136
+severity: High
+confidence: 0.75
+fallback: true
+event_type: user_created
+match: {category: users, change: Added}
+description: "Account {key} exists now but not in the clean baseline"
+---
+id: FS-DIFF-002
+title: New administrator since baseline
+kind: diff
+attck_id: T1098
+severity: High
+confidence: 0.75
+fallback: true
+event_type: admin_added
+match: {category: groups, change: Added, key|startswith: "Administrators:"}
+description: "{key} is an administrator now but was not in the clean baseline"
+---
+id: FS-DIFF-003
+title: New Run key since baseline
+kind: diff
+attck_id: T1547.001
+severity: Medium
+confidence: 0.6
+fallback: true
+event_type: runkey_persistence
+match: {category: run_keys, change: Added}
+description: "Run key {key} added since the clean baseline"
+---
+id: FS-DIFF-004
+title: New service since baseline
+kind: diff
+attck_id: T1543.003
+severity: Low
+confidence: 0.5
+fallback: true
+event_type: service_installed
+match: {category: services, change: Added}
+description: "Service {key} added since the clean baseline"
+---
+id: FS-DIFF-005
+title: New scheduled task since baseline
+kind: diff
+attck_id: T1053.005
+severity: Low
+confidence: 0.5
+fallback: true
+event_type: task_created
+match: {category: tasks, change: Added}
+description: "Scheduled task {key} added since the clean baseline"

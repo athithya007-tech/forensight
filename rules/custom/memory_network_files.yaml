@@ -1,0 +1,98 @@
+id: FS-MEM-001
+title: Injected code (malfind)
+kind: malfind
+attck_id: T1055
+severity: Critical
+confidence: 0.75
+event_type: code_injection
+match:
+  protection|contains: EXECUTE
+description: "Executable private memory without a backing file in {name} (pid {pid}, {protection})"
+dedupe: "{pid}"
+playbook:
+  - Dump the process memory region and scan it with YARA
+  - Kill the process only after memory has been preserved
+---
+id: FS-MEM-002
+title: Hidden process (in psscan, not in pslist)
+kind: hidden_process
+attck_id: T1014
+severity: Critical
+confidence: 0.8
+event_type: hidden_process
+description: "Process {name} (pid {pid}) is hidden from the active process list"
+dedupe: "{pid}"
+playbook:
+  - Image the full disk; a kernel rootkit may be present
+  - Rebuild the host from known-good media
+---
+id: FS-NET-001
+title: Suspicious outbound connection
+kind: [netconn, evtx]
+attck_id: T1071
+severity: High
+confidence: 0.8
+event_type: suspicious_outbound
+match:
+  raddr|exists: true
+  any:
+    - {rport: [4444, 1337, 31337, 5555, 6666, 6667, 9001, "4444", "1337", "31337"]}
+    - {reputation: malicious}
+    - {raddr|in_file: bad_ips.txt}
+description: "{process} (pid {pid}) connected to {raddr}:{rport} (reputation: {reputation})"
+dedupe: "{raddr}:{rport}"
+playbook:
+  - Block the remote IP/port at the perimeter firewall
+  - Capture traffic to/from the IP to identify C2 protocol and data sent
+---
+id: FS-FILE-001
+title: YARA rule match
+kind: yara
+attck_id: T1105
+severity: High
+confidence: 0.9
+event_type: yara_match
+description: "YARA {rule} matched {path}"
+dedupe: "{sha256}"
+playbook:
+  - Quarantine the file and search all hosts for its SHA-256
+  - Find how the file arrived (browser download, PowerShell, SMB)
+---
+id: FS-FILE-002
+title: Known-bad file hash
+kind: hash_rep
+attck_id: T1105
+severity: High
+confidence: 0.95
+event_type: bad_hash
+match: {reputation: malicious}
+description: "{path} has a known-malicious hash ({source})"
+dedupe: "{sha256}"
+playbook:
+  - Quarantine the file and block the hash in EDR/AV
+---
+id: FS-FILE-003
+title: Mass file encryption (high-entropy writes)
+kind: entropy
+attck_id: T1486
+severity: Critical
+confidence: 0.8
+event_type: ransomware_activity
+match: {entropy|gte: 7.5}
+filter:
+  path|re: "(?i)\\.(zip|7z|rar|gz|jpg|jpeg|png|gif|mp3|mp4|mkv|avi|pdf|docx|xlsx|pptx|cab|msi|exe|dll)$"
+threshold: {count: 50, window: 5m}
+burst_label: "high-entropy file write"
+description: "{count} files rewritten with entropy > 7.5 bits/byte within {window} ({first}-{last} UTC)"
+playbook:
+  - Disconnect the host from the network immediately to stop spread
+  - Identify the encrypting process and preserve memory before shutdown
+  - Restore from offline backups after rebuilding the host
+---
+id: FS-CTX-NET
+title: External network connection
+kind: netconn
+context: true
+event_type: network_connection
+match: {raddr|exists: true, state: [ESTABLISHED, SYN_SENT]}
+description: "{process} (pid {pid}) → {raddr}:{rport}"

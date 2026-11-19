@@ -1,0 +1,21 @@
+title: Obfuscated PowerShell Script Block (IEX + Base64)
+id: 4e8d1b6a-7f3c-4a2e-9d5b-6c1e2f3a4b44
+status: experimental
+description: Script block that both decodes Base64 and invokes the result (ForenSight sample rule)
+author: ForenSight
+tags:
+  - attack.defense_evasion
+  - attack.t1027
+logsource:
+  product: windows
+  category: ps_script
+detection:
+  decode:
+    ScriptBlockText|contains: 'FromBase64String'
+  invoke:
+    ScriptBlockText|contains:
+      - 'IEX'
+      - 'Invoke-Expression'
+      - 'DownloadString'
+  condition: decode and invoke
+level: high

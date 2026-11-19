@@ -1,0 +1,58 @@
+# Windows authentication detections. One YAML document per rule; add a file to add a detection.
+id: FS-WIN-001
+title: Brute-force logon followed by success
+kind: evtx
+attck_id: T1110
+severity: High
+confidence: 0.95
+event_type: brute_force_success
+match: {Channel: Security, EventID: 4625}
+threshold: {count: 5, window: 5m, group_by: IpAddress}
+followed_by:
+  within: 10m
+  kind: evtx
+  same: [IpAddress]
+  match: {EventID: 4624}
+unfollowed_severity: Medium
+unfollowed_description: "{count} failed logons from {IpAddress} in {window} ({first}-{last} UTC), no success seen"
+burst_label: "failed logon (4625) from {IpAddress} for {TargetUserName}"
+description: "Logon as {success_TargetUserName} from {IpAddress} succeeded after {count} failed attempts ({first}-{last} UTC)"
+playbook:
+  - Reset the password of the compromised account and force sign-out of its sessions
+  - Block the source IP at the firewall and review other hosts for logons from it
+  - Enable account lockout policy (e.g. 5 attempts / 15 min)
+---
+id: FS-WIN-002
+title: Remote interactive (RDP) logon
+kind: evtx
+attck_id: T1078
+severity: Medium
+confidence: 0.7
+event_type: rdp_logon
+match:
+  Channel: Security
+  EventID: 4624
+  LogonType: [10, "10"]
+  IpAddress|exists: true
+filter:
+  IpAddress: ["127.0.0.1", "::1", "-"]
+description: "RDP logon (type 10) as {TargetUserName} from {IpAddress}"
+dedupe: "{TargetLogonId}"
+playbook:
+  - Confirm with the account owner whether this RDP session was expected
+  - Restrict RDP to a VPN / jump host and require NLA + MFA
+---
+id: FS-CTX-LOGON
+title: Successful logon
+kind: evtx
+context: true
+event_type: logon_success
+match:
+  Channel: Security
+  EventID: 4624
+  LogonType: [2, 3, 7, 10, 11, "2", "3", "7", "10", "11"]
+filter:
+  any:
+    - TargetUserName|endswith: "$"
+    - TargetUserName: [SYSTEM, "LOCAL SERVICE", "NETWORK SERVICE", "ANONYMOUS LOGON", "DWM-1", "UMFD-0", "UMFD-1"]
+description: "Logon type {LogonType} as {TargetUserName} from {IpAddress}"

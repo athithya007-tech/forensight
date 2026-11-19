@@ -1,0 +1,94 @@
+id: FS-LNX-001
+title: SSH brute force followed by success
+kind: auth
+attck_id: T1110
+severity: High
+confidence: 0.95
+event_type: ssh_brute_force_success
+match: {result: failed}
+threshold: {count: 5, window: 5m, group_by: ip}
+followed_by:
+  within: 10m
+  kind: auth
+  same: [ip]
+  match: {result: accepted}
+unfollowed_severity: Medium
+unfollowed_description: "{count} failed SSH passwords from {ip} in {window}, no success seen"
+burst_label: "failed SSH password from {ip} for {user}"
+description: "SSH login as {success_user} from {ip} succeeded after {count} failed passwords ({first}-{last} UTC)"
+playbook:
+  - Disable password authentication in sshd_config (use keys only)
+  - Rotate the compromised account's password and review ~/.ssh/authorized_keys
+  - Deploy fail2ban or equivalent rate limiting
+---
+id: FS-LNX-002
+title: Suspicious cron entry
+kind: cron
+attck_id: T1053.003
+severity: High
+confidence: 0.8
+event_type: cron_persistence
+match:
+  line|re: "(curl|wget|\\bnc\\b|ncat|bash -i|/dev/tcp|python[0-9.]* -c|/tmp/|/dev/shm/|base64 -d)"
+description: "Cron entry in {file}: {line}"
+playbook:
+  - Remove the cron entry and preserve the script it runs
+  - Check other users' crontabs and /etc/cron.d for similar entries
+---
+id: FS-LNX-003
+title: Cron file changed during incident window
+kind: cron
+attck_id: T1053.003
+severity: Medium
+confidence: 0.6
+event_type: cron_modified
+in_window: true
+match: {line|exists: true}
+filter:
+  line|re: "(curl|wget|\\bnc\\b|ncat|bash -i|/dev/tcp|python[0-9.]* -c|/tmp/|/dev/shm/|base64 -d)"
+description: "Cron file {file} modified during the incident window: {line}"
+---
+id: FS-LNX-004
+title: Linux account created
+kind: auth
+attck_id: T1136.001
+severity: High
+confidence: 0.85
+event_type: linux_user_created
+match: {result: useradd}
+description: "New Linux account {user} created"
+playbook:
+  - Lock the account (usermod -L) and review its activity
+---
+id: FS-LNX-005
+title: Reverse shell or download-and-execute in shell history
+kind: shell
+attck_id: T1059.004
+severity: High
+confidence: 0.85
+event_type: unix_shell_abuse
+match:
+  command|re: "((curl|wget)[^|]*\\|\\s*(ba|z)?sh|/dev/tcp/|\\bnc(at)?\\b.*-e|bash -i|python[0-9.]* -c .*socket)"
+description: "{user} ran: {command}"
+playbook:
+  - Identify the remote host in the command and block it
+  - Check for persistence the shell session may have created
+---
+id: FS-LNX-006
+title: Shell history cleared
+kind: shell
+attck_id: T1070.003
+severity: Medium
+confidence: 0.8
+event_type: history_cleared
+match:
+  command|re: "^(history -c|rm .*\\.(bash|zsh)_history|unset HISTFILE|export HISTFILE=/dev/null|shred .*history)"
+description: "{user} cleared shell history: {command}"
+---
+id: FS-CTX-SSH
+title: SSH login accepted
+kind: auth
+context: true
+event_type: ssh_login
+match: {result: accepted}
+description: "SSH login as {user} from {ip} ({method})"

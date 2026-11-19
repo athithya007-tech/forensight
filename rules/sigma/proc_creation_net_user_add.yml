@@ -1,0 +1,22 @@
+title: Local User Created Via Net.exe
+id: 7c3f5a10-3f2e-4c8e-9f3a-1d2b8c0e4a11
+status: experimental
+description: Detects creation of a local user with "net user /add" (ForenSight sample rule, Sigma format)
+author: ForenSight
+tags:
+  - attack.persistence
+  - attack.t1136.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith:
+      - '\net.exe'
+      - '\net1.exe'
+  selection_cli:
+    CommandLine|contains|all:
+      - 'user'
+      - '/add'
+  condition: all of selection_*
+level: medium

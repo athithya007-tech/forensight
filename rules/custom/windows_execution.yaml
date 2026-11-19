@@ -1,0 +1,106 @@
+id: FS-WIN-003
+title: Encoded PowerShell command
+kind: [evtx, process]
+attck_id: T1059.001
+severity: High
+confidence: 0.9
+event_type: encoded_powershell
+match:
+  any:
+    - {EventID: 4104, ScriptBlockText|re: "FromBase64String"}
+    - {cmdline|re: "(?i)(powershell|pwsh)(\\.exe)?\\s.*\\s-(e|ec|en|enc|enco|encod|encodedcommand)\\s+[A-Za-z0-9+/=]{16,}"}
+description: "Encoded PowerShell executed: {cmdline}{ScriptBlockText}"
+dedupe: "{pid}"
+playbook:
+  - Decode the Base64 payload and identify what it downloaded or executed
+  - Isolate the host from the network if the payload reached out to the internet
+  - Enable PowerShell Constrained Language Mode / AMSI logging fleet-wide
+---
+id: FS-WIN-004
+title: PowerShell download cradle
+kind: evtx
+attck_id: T1105
+severity: High
+confidence: 0.85
+event_type: powershell_download
+match:
+  EventID: 4104
+  ScriptBlockText|re: "(DownloadString|DownloadFile|Invoke-WebRequest|\\biwr\\b|Net\\.WebClient|Start-BitsTransfer|Invoke-RestMethod)"
+filter:
+  ScriptBlockText|re: "FromBase64String"
+description: "PowerShell script block downloads content: {ScriptBlockText}"
+playbook:
+  - Retrieve the downloaded file from disk/proxy logs and hash it
+  - Block the download URL/domain at the proxy
+---
+id: FS-PROC-001
+title: Office application spawned a shell
+kind: [process, evtx]
+attck_id: T1204.002
+severity: High
+confidence: 0.85
+event_type: office_spawns_shell
+match:
+  parent_name|re: "^(winword|excel|powerpnt|outlook|onenote|mspub)\\.exe$"
+  name|re: "^(cmd|powershell|pwsh|wscript|cscript|mshta|rundll32|regsvr32)\\.exe$"
+description: "{parent_name} spawned {name} (pid {pid}): {cmdline}"
+dedupe: "{pid}"
+playbook:
+  - Recover the Office document that was opened and submit its hash for analysis
+  - Disable Office macros from the internet via Group Policy
+---
+id: FS-WIN-012
+title: Microsoft Defender protection disabled
+kind: [evtx, process]
+attck_id: T1562.001
+severity: High
+confidence: 0.85
+event_type: defense_disabled
+match:
+  any:
+    - {ScriptBlockText|re: "Set-MpPreference.*-Disable(RealtimeMonitoring|BehaviorMonitoring|IOAVProtection)\\s+\\$?true"}
+    - {cmdline|re: "Set-MpPreference.*-Disable(RealtimeMonitoring|BehaviorMonitoring|IOAVProtection)"}
+    - {EventID: 5001, Channel|contains: "Defender"}
+description: "Defender protection disabled: {ScriptBlockText}{cmdline}"
+playbook:
+  - Re-enable Defender real-time protection and run a full scan
+  - Enable Tamper Protection to prevent local changes
+---
+id: FS-WIN-013
+title: LSASS memory dump attempt
+kind: [evtx, process]
+attck_id: T1003.001
+severity: Critical
+confidence: 0.9
+event_type: credential_dumping
+match:
+  cmdline|re: "(procdump.*lsass|comsvcs(\\.dll)?[, ]+#?24|comsvcs.*MiniDump|sekurlsa|lsass\\.dmp)"
+description: "Credential dumping command: {cmdline}"
+dedupe: "{pid}"
+playbook:
+  - Assume all credentials used on this host are compromised; rotate them
+  - Enable LSA protection (RunAsPPL) and Credential Guard
+---
+id: FS-CTX-PROC
+title: Process created
+kind: evtx
+context: true
+event_type: process_create
+match: {EventID: [4688, 1]}
+description: "{parent_name} → {name}: {cmdline}"
+---
+id: FS-CTX-FILE
+title: File created
+kind: evtx
+context: true
+event_type: file_create
+match: {EventID: 11, TargetFilename|exists: true}
+description: "{Image} wrote {TargetFilename}"
+---
+id: FS-CTX-REG
+title: Registry value set
+kind: evtx
+context: true
+event_type: registry_set
+match: {EventID: 13, TargetObject|exists: true}
+description: "{Image} set {TargetObject} = {Details}"

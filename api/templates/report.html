@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Incident Report {{ case.id }}</title>
+<style>
+  @page {
+    size: A4; margin: 18mm 15mm 20mm 15mm;
+    @bottom-left { content: "{{ case.id }} · ForenSight incident report"; font: 7.5pt sans-serif; color: #64748b; }
+    @bottom-center { content: "Page " counter(page) " of " counter(pages); font: 7.5pt sans-serif; color: #64748b; }
+    @bottom-right { content: "Report hash {{ report_hash }}"; font: 7.5pt monospace; color: #64748b; }
+  }
+  @page :first { @bottom-left { content: ""; } }
+  :root { --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --accent:#0891b2; }
+  * { box-sizing: border-box; }
+  body { font-family: Inter, "Segoe UI", "DejaVu Sans", sans-serif; color: var(--ink); font-size: 9.5pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 24pt; margin: 0 0 4pt; letter-spacing: -0.02em; }
+  h2 { font-size: 14pt; margin: 18pt 0 6pt; padding-bottom: 3pt; border-bottom: 2px solid var(--ink); page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12pt 0 4pt; page-break-after: avoid; }
+  .mono, code { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 8pt; word-break: break-all; }
+  .muted { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; }
+  th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--ink); padding: 3pt 4pt; }
+  td { border-bottom: 1px solid var(--line); padding: 3pt 4pt; vertical-align: top; font-size: 8.5pt; }
+  tr { page-break-inside: avoid; }
+  .sev { display: inline-block; padding: 1pt 5pt; border-radius: 3pt; color: #fff; font-size: 7.5pt; font-weight: 700; }
+  {% for k, c in colors.items() %}.sev-{{ k }} { background: {{ c }}; }{% endfor %}
+  .sev-Medium { color: #111; }
+  .cover { height: 250mm; display: flex; flex-direction: column; page-break-after: always; }
+  .brand { font-weight: 800; color: var(--accent); letter-spacing: .08em; font-size: 10pt; }
+  .verdict { display: inline-block; padding: 6pt 14pt; border-radius: 6pt; font-size: 16pt; font-weight: 800; color: #fff; margin: 12pt 0; }
+  .v-Compromised { background: #EF4444; } .v-Suspicious { background: #EAB308; color:#111; } .v-Clean { background: #22C55E; }
+  .kv { display: grid; grid-template-columns: 34mm 1fr; gap: 2pt 8pt; margin: 10pt 0; }
+  .kv div:nth-child(odd) { color: var(--muted); }
+  .counts { display: flex; gap: 6pt; margin: 8pt 0; }
+  .count { flex: 1; border: 1px solid var(--line); border-radius: 5pt; padding: 6pt; text-align: center; }
+  .count b { display: block; font-size: 16pt; }
+  .exec { background: #f1f5f9; border-left: 4px solid var(--accent); padding: 8pt 10pt; border-radius: 3pt; }
+  .ai { background: #fefce8; border-left: 4px solid #EAB308; padding: 8pt 10pt; margin-top: 8pt; }
+  .ai-label { font-weight: 800; font-size: 7.5pt; text-transform: uppercase; color: #a16207; letter-spacing: .06em; }
+  .qr { margin-top: auto; display: flex; gap: 12pt; align-items: center; border-top: 1px solid var(--line); padding-top: 10pt; }
+  .qr img { width: 30mm; height: 30mm; }
+  .finding { border: 1px solid var(--line); border-radius: 5pt; padding: 6pt 8pt; margin: 5pt 0; page-break-inside: avoid; }
+  .finding .head { display: flex; gap: 6pt; align-items: baseline; }
+  .finding .title { font-weight: 700; }
+  .finding ul { margin: 3pt 0 0 12pt; padding: 0; }
+  .matrix { display: flex; gap: 4pt; flex-wrap: wrap; }
+  .tactic { flex: 1 1 30mm; border: 1px solid var(--line); border-radius: 4pt; padding: 4pt; min-width: 30mm; }
+  .tactic h4 { margin: 0 0 3pt; font-size: 8pt; text-transform: uppercase; color: var(--muted); }
+  .tech { border-radius: 3pt; padding: 2pt 4pt; margin: 2pt 0; font-size: 7.5pt; color: #fff; }
+  .ok { color: #16a34a; font-weight: 700; } .bad { color: #dc2626; font-weight: 700; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="brand">FORENSIGHT · INCIDENT REPORT</div>
+  <h1>{{ case.name }}</h1>
+  <div class="mono muted">{{ case.id }}</div>
+  <div><span class="verdict v-{{ summary.verdict }}">{{ summary.verdict }} · {{ summary.score }}/100</span></div>
+  <div class="counts">
+    {% for k in ['Critical','High','Medium','Low','Info'] %}<div class="count"><b style="color: {{ colors[k] }}">{{ sev_counts[k] }}</b>{{ k }}</div>{% endfor %}
+  </div>
+  <div class="kv">
+    <div>Host</div><div>{{ case.host }} ({{ case.os }} {{ case.host_info.os_version if case.host_info else '' }})</div>
+    <div>Investigator</div><div>{{ case.investigator }}</div>
+    <div>Case opened</div><div>{{ case.created_at }}</div>
+    <div>Attack window</div><div>{{ summary.attack_start or '—' }} → {{ summary.attack_end or '—' }}</div>
+    <div>Report generated</div><div>{{ generated_at }}</div>
+  </div>
+  <h3>Executive summary</h3>
+  <div class="exec">{{ exec_summary }}</div>
+  {% if ai_summary %}
+  <div class="ai"><div class="ai-label">{{ ai_label }}</div>{{ ai_summary }}</div>
+  {% endif %}
+  <div class="qr">
+    <img src="{{ qr }}" alt="QR code">
+    <div>
+      <b>Verify this report</b><br>
+      <span class="mono">{{ verify_url }}</span><br>
+      <span class="muted">The PDF is signed with Ed25519 (report.sig). Key fingerprint <span class="mono">{{ key_fingerprint }}</span>.
+      Editing a single byte invalidates the signature.</span>
+    </div>
+  </div>
+</section>
+
+<h2>1. Scope</h2>
+<table>
+  <tr><th style="width:40mm">Item</th><th>Detail</th></tr>
+  <tr><td>Evidence collected</td><td>{{ manifest|length }} artifacts, every one SHA-256 hashed and chained in manifest.json</td></tr>
+  <tr><td>Collection profile</td><td>{{ collection.profile or '—' }}{% if collection.modules %}: {{ collection.modules.keys()|join(', ') }}{% endif %}</td></tr>
+  <tr><td>Incident window</td><td>{{ case.incident_window.start }} → {{ case.incident_window.end or 'collection time' }}</td></tr>
+  <tr><td>Events reviewed</td><td>{{ summary.records }} raw records → {{ all_events }} timeline events ({{ events_total }} notable)</td></tr>
+  <tr><td>Engines</td><td>Custom rules ({{ summary.engines.custom_rules }}), Sigma ({{ summary.engines.sigma_rules }} rules{% if summary.engines.chainsaw %}, Chainsaw{% else %}, built-in evaluator{% endif %}), YARA, Volatility 3 {% if summary.engines.volatility %}(memory analysed){% else %}(no memory output){% endif %}, threat intel {% if summary.engines.online_intel %}online{% else %}offline{% endif %}</td></tr>
+  <tr><td>Time standard</td><td>All times are UTC (ISO 8601, millisecond precision where the source provides it)</td></tr>
+</table>
+
+<h2>2. Attack timeline</h2>
+{% if timeline_svg %}<div>{{ timeline_svg|safe }}</div>{% endif %}
+{% for ph in phases %}
+<p><b>{{ ph.label }}</b> <span class="muted">{{ ph.start[11:19] }}–{{ ph.end[11:19] }} UTC · {{ ph.tactics|join(' → ') }} · {{ ph.events }} events</span></p>
+{% endfor %}
+<table>
+  <tr><th style="width:20mm">Time (UTC)</th><th style="width:15mm">Severity</th><th style="width:18mm">ATT&amp;CK</th><th>Event</th><th style="width:30mm">Source</th></tr>
+  {% for e in events %}
+  <tr><td class="mono">{{ e.timestamp_utc[11:23] }}</td><td><span class="sev sev-{{ e.severity }}">{{ e.severity }}</span></td>
+      <td class="mono">{{ e.attck_id or '' }}</td><td>{{ e.description[:220] }}</td><td class="mono">{{ e.source }}</td></tr>
+  {% endfor %}
+</table>
+{% if events_total > events|length %}<p class="muted">{{ events_total - events|length }} more events in timeline.csv.</p>{% endif %}
+
+<h2 class="page-break">3. Findings by ATT&amp;CK tactic</h2>
+{% if not findings %}<p>No findings.</p>{% endif %}
+{% for tactic, fs in grouped %}
+<h3>{{ tactic }}</h3>
+{% for f in fs %}
+<div class="finding">
+  <div class="head"><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span>
+    <span class="title">{{ f.title }}</span>
+    <span class="mono muted">{{ f.attck_id }} {{ f.technique }} · {{ f.rule_id }} · confidence {{ '%.0f'|format(f.confidence * 100) }}%</span></div>
+  <div>{{ f.description[:400] }}</div>
+  <div class="muted">First seen {{ f.first_seen }}{% if f.pre_existing %} · <b>pre-existing</b> in baseline (lowered from {{ f.original_severity }}){% endif %}</div>
+  <div class="mono muted">{% for ev in f.evidence[:3] %}{{ ev.ref }}{% if ev.sha256 %} (sha256 {{ ev.sha256[:16] }}…){% endif %}<br>{% endfor %}{% if f.evidence|length > 3 %}+{{ f.evidence|length - 3 }} more{% endif %}</div>
+  {% if f.playbook %}<ul>{% for p in f.playbook %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% endfor %}
+{% endfor %}
+
+<h2>4. MITRE ATT&amp;CK map</h2>
+<div class="matrix">
+{% for col in matrix %}
+  <div class="tactic"><h4>{{ col.tactic }}</h4>
+  {% for t in col.techniques %}<div class="tech" style="background: {{ colors[t.severity] }}">{{ t.id }} {{ t.name }} ({{ t.count }})</div>{% endfor %}
+  </div>
+{% endfor %}
+</div>
+
+<h2>5. Recommendations</h2>
+<ol>{% for r in recommendations %}<li>{{ r }}</li>{% else %}<li>No action required beyond routine monitoring.</li>{% endfor %}</ol>
+
+<h2 class="page-break">Appendix A. Indicators of compromise</h2>
+<table>
+  <tr><th style="width:22mm">Type</th><th>Value</th><th style="width:16mm">Severity</th><th style="width:45mm">Context</th></tr>
+  {% for i in iocs %}<tr><td>{{ i.type }}</td><td class="mono">{{ i.value }}</td><td><span class="sev sev-{{ i.severity }}">{{ i.severity }}</span></td><td>{{ i.context }}</td></tr>
+  {% else %}<tr><td colspan="4">None</td></tr>{% endfor %}
+</table>
+<p class="muted">Also exported as iocs.csv and iocs.stix.json (STIX 2.1).</p>
+
+<h2>Appendix B. Chain of custody</h2>
+<p>Verification at {{ verify.verified_at }}:
+  {% if verify.ok %}<span class="ok">✔ all {{ verify.total }} artifacts match, hash chain intact</span>
+  {% else %}<span class="bad">✘ {{ verify.mismatches }} mismatches{% if verify.first_break %}, chain broken at entry {{ verify.first_break }}{% endif %}</span>{% endif %}.
+  Root hash <span class="mono">{{ verify.root_hash }}</span>.</p>
+<p>entry_hash = SHA-256(prev_hash + file_sha256 + metadata). Signing key (Ed25519, base64): <span class="mono">{{ public_key }}</span></p>
+<table>
+  <tr><th style="width:7mm">#</th><th>Path</th><th style="width:15mm">Size</th><th style="width:52mm">SHA-256</th><th style="width:24mm">Collected (UTC)</th></tr>
+  {% for e in manifest %}<tr><td>{{ e.seq }}</td><td class="mono">{{ e.path }}</td><td>{{ e.size }}</td><td class="mono">{{ e.sha256 }}</td><td class="mono">{{ e.collected_at[:19] }}</td></tr>{% endfor %}
+</table>
+</body>
+</html>

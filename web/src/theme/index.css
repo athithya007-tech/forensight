@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PRD 15.7 design tokens (dark SOC theme by default) */
+:root, .dark {
+  --bg: 11 15 23;          /* #0B0F17 */
+  --surface: 18 24 38;     /* #121826 */
+  --surface2: 25 33 51;
+  --border: 31 41 55;      /* #1F2937 */
+  --text: 229 231 235;     /* #E5E7EB */
+  --muted: 156 163 175;    /* #9CA3AF */
+  --accent: 34 211 238;    /* #22D3EE */
+  color-scheme: dark;
+}
+.light {
+  --bg: 244 246 250;
+  --surface: 255 255 255;
+  --surface2: 241 245 249;
+  --border: 222 228 236;
+  --text: 15 23 42;
+  --muted: 82 96 117;
+  --accent: 8 145 178;
+  color-scheme: light;
+}
+html, body, #root { height: 100%; }
+body { @apply bg-bg text-text font-sans antialiased; font-size: 14px; }
+::selection { background: rgb(var(--accent) / 0.3); }
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--border)) transparent; }
+
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgb(var(--accent) / .6) } 100% { box-shadow: 0 0 0 14px rgb(var(--accent) / 0) } }
+.pulse { animation: pulse-ring 1.2s ease-out infinite; }
+@keyframes slide-in { from { transform: translateY(6px); opacity: 0 } to { transform: none; opacity: 1 } }
+.slide-in { animation: slide-in .25s ease-out; }
+
+/* vis-timeline dark overrides */
+.vis-timeline { border: 1px solid rgb(var(--border)) !important; border-radius: 8px; font-family: Inter, sans-serif; background: rgb(var(--surface)); }
+.vis-panel.vis-center, .vis-panel.vis-left, .vis-panel.vis-right, .vis-panel.vis-top, .vis-panel.vis-bottom { border-color: rgb(var(--border)) !important; }
+.vis-time-axis .vis-text { color: rgb(var(--muted)) !important; font-size: 11px; }
+.vis-time-axis .vis-grid.vis-minor { border-color: rgb(var(--border) / .6) !important; }
+.vis-time-axis .vis-grid.vis-major { border-color: rgb(var(--border)) !important; }
+.vis-labelset .vis-label { color: rgb(var(--muted)) !important; border-color: rgb(var(--border)) !important; font-size: 11px; }
+.vis-foreground .vis-group, .vis-background .vis-group { border-color: rgb(var(--border) / .5) !important; }
+.vis-item { border-radius: 6px !important; font-size: 11px; color: #0B0F17; border-width: 1px !important; }
+.vis-item.vis-point, .vis-item.vis-dot { background: transparent; }
+.vis-item .vis-item-content { padding: 2px 6px !important; }
+.vis-item.sev-Critical { background: #EF4444; border-color: #EF4444; color: #fff; }
+.vis-item.sev-High { background: #F97316; border-color: #F97316; }
+.vis-item.sev-Medium { background: #EAB308; border-color: #EAB308; }
+.vis-item.sev-Low { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+.vis-item.sev-Info { background: rgb(var(--surface2)); border-color: rgb(var(--border)); color: rgb(var(--muted)); }
+.vis-item.vis-selected { box-shadow: 0 0 0 3px rgb(var(--accent)); z-index: 5; }
+.vis-item.current { box-shadow: 0 0 0 3px rgb(var(--accent)); animation: pulse-ring 1.2s ease-out infinite; z-index: 6; }
+.vis-item.vis-background.phase { background: rgb(var(--accent) / .07); border: none; }
+.vis-item.vis-background.phase .vis-item-content { color: rgb(var(--accent)); font-weight: 600; font-size: 10px; }
+.vis-current-time { background: rgb(var(--accent)); }
