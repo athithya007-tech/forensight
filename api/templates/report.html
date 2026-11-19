@@ -19,9 +19,10 @@
   h3 { font-size: 11pt; margin: 12pt 0 4pt; page-break-after: avoid; }
   .mono, code { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 8pt; word-break: break-all; }
   .muted { color: var(--muted); }
-  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; table-layout: fixed; }
   th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--ink); padding: 3pt 4pt; }
-  td { border-bottom: 1px solid var(--line); padding: 3pt 4pt; vertical-align: top; font-size: 8.5pt; }
+  td { border-bottom: 1px solid var(--line); padding: 3pt 4pt; vertical-align: top; font-size: 8.5pt; overflow-wrap: anywhere; }
+  td.nowrap { white-space: nowrap; overflow-wrap: normal; }
   tr { page-break-inside: avoid; }
   .sev { display: inline-block; padding: 1pt 5pt; border-radius: 3pt; color: #fff; font-size: 7.5pt; font-weight: 700; }
   {% for k, c in colors.items() %}.sev-{{ k }} { background: {{ c }}; }{% endfor %}
@@ -40,7 +41,7 @@
   .ai-label { font-weight: 800; font-size: 7.5pt; text-transform: uppercase; color: #a16207; letter-spacing: .06em; }
   .qr { margin-top: auto; display: flex; gap: 12pt; align-items: center; border-top: 1px solid var(--line); padding-top: 10pt; }
   .qr img { width: 30mm; height: 30mm; }
-  .finding { border: 1px solid var(--line); border-radius: 5pt; padding: 6pt 8pt; margin: 5pt 0; page-break-inside: avoid; }
+  .finding { overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 5pt; padding: 6pt 8pt; margin: 5pt 0; page-break-inside: avoid; }
   .finding .head { display: flex; gap: 6pt; align-items: baseline; }
   .finding .title { font-weight: 700; }
   .finding ul { margin: 3pt 0 0 12pt; padding: 0; }
@@ -102,10 +103,10 @@
 <p><b>{{ ph.label }}</b> <span class="muted">{{ ph.start[11:19] }}–{{ ph.end[11:19] }} UTC · {{ ph.tactics|join(' → ') }} · {{ ph.events }} events</span></p>
 {% endfor %}
 <table>
-  <tr><th style="width:20mm">Time (UTC)</th><th style="width:15mm">Severity</th><th style="width:18mm">ATT&amp;CK</th><th>Event</th><th style="width:30mm">Source</th></tr>
+  <tr><th style="width:16mm">UTC</th><th style="width:17mm">Severity</th><th style="width:19mm">ATT&amp;CK</th><th>Event</th><th style="width:34mm">Source</th></tr>
   {% for e in events %}
-  <tr><td class="mono">{{ e.timestamp_utc[11:23] }}</td><td><span class="sev sev-{{ e.severity }}">{{ e.severity }}</span></td>
-      <td class="mono">{{ e.attck_id or '' }}</td><td>{{ e.description[:220] }}</td><td class="mono">{{ e.source }}</td></tr>
+  <tr><td class="mono nowrap">{{ e.timestamp_utc[11:19] }}</td><td><span class="sev sev-{{ e.severity }}">{{ e.severity }}</span></td>
+      <td class="mono">{{ e.attck_id or '' }}</td><td>{{ e.description[:220] }}</td><td class="mono">{{ e.sources|join(", ")|replace(".evtx.jsonl", ".evtx") }}</td></tr>
   {% endfor %}
 </table>
 {% if events_total > events|length %}<p class="muted">{{ events_total - events|length }} more events in timeline.csv.</p>{% endif %}

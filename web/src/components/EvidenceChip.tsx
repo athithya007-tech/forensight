@@ -8,7 +8,10 @@ import { Loading, Mono, cx } from "./ui";
 /** Clicking opens the EvidenceDrawer with the raw record and the file's SHA-256 (FR-29). */
 export function EvidenceChip({ evidenceRef, label, className }: { evidenceRef: string; label?: string; className?: string }) {
   const open = useUi((s) => s.openEvidence);
-  const short = label ?? evidenceRef.replace(/^raw\//, "").replace(/\.evtx\.jsonl/, ".evtx").slice(0, 46);
+  const [file, anchor] = evidenceRef.replace(/\.evtx\.jsonl/, ".evtx").split("#");
+  const base = file.split("/").pop() ?? file;
+  const tail = anchor ? `#${anchor.replace(/^EventRecordID=/, "rec ").slice(0, 22)}` : "";
+  const short = label ?? `${base.replace("-Operational", "")}${tail}`;
   return (
     <button onClick={(e) => { e.stopPropagation(); open(evidenceRef); }} title={evidenceRef}
       className={cx("inline-flex items-center gap-1 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 font-mono text-[11px] text-accent hover:bg-accent/20 max-w-full", className)}>

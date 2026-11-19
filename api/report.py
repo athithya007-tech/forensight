@@ -33,7 +33,17 @@ def _qr_data_uri(url: str) -> str:
 
 
 def timeline_svg(events: list[dict], phases: list[dict], width: int = 720, height: int = 190) -> str:
-    notable = [e for e in events if e["severity"] != "Info"]
+    # one row per distinct event: the same activity seen in Sysmon, live state and memory is merged
+    notable, rows = [], {}
+    for e in events:
+        if e["severity"] == "Info":
+            continue
+        key = (e["timestamp_utc"][:19], e["description"][:160])
+        if key in rows:
+            rows[key]["sources"].append(e["source"])
+        else:
+            rows[key] = {**e, "sources": [e["source"]]}
+            notable.append(rows[key])
     if not notable:
         return ""
     t = [parse_ts(e["timestamp_utc"]).timestamp() for e in notable]
@@ -88,7 +98,17 @@ def build_context(case_dir: Path, base_url: str = "http://localhost:8080", ai: b
     s = cd.summary_file()
     findings = cd.findings()
     events, _ = cd.events(include_raw=False)
-    notable = [e for e in events if e["severity"] != "Info"]
+    # one row per distinct event: the same activity seen in Sysmon, live state and memory is merged
+    notable, rows = [], {}
+    for e in events:
+        if e["severity"] == "Info":
+            continue
+        key = (e["timestamp_utc"][:19], e["description"][:160])
+        if key in rows:
+            rows[key]["sources"].append(e["source"])
+        else:
+            rows[key] = {**e, "sources": [e["source"]]}
+            notable.append(rows[key])
     by_tactic: dict[str, list] = {}
     for f in findings:
         by_tactic.setdefault(f["tactic"] or "Other", []).append(f)

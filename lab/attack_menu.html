@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ForenSight attack menu</title>
+<style>body{font-family:Inter,Arial,sans-serif;max-width:720px;margin:24px auto;color:#0f172a}h1{margin:0}table{width:100%;border-collapse:collapse;margin-top:16px}
+td,th{border:1px solid #cbd5e1;padding:10px;text-align:left}td.box{width:36px;font-size:22px;text-align:center}.mono{font-family:monospace;color:#475569}@media print{button{display:none}}</style></head>
+<body><h1>Pick the attack</h1><p>Tick any steps. We will run exactly these on the lab VM, and ForenSight must find exactly these. No cheating: results are not hardcoded.</p>
+<table><tr><th></th><th>#</th><th>Attacker action</th><th>ATT&amp;CK</th></tr>
+<tr><td class="box">☐</td><td>1</td><td>Password-guess RDP/SMB login from Kali</td><td class="mono">T1110</td></tr>
+<tr><td class="box">☐</td><td>2</td><td>Log in as a weak-password admin</td><td class="mono">T1078</td></tr>
+<tr><td class="box">☐</td><td>3</td><td>Run encoded PowerShell that downloads a test file</td><td class="mono">T1059.001</td></tr>
+<tr><td class="box">☐</td><td>4</td><td>Drop the EICAR test file in %TEMP%</td><td class="mono">T1105</td></tr>
+<tr><td class="box">☐</td><td>5</td><td>Create user support_backup and add to admins</td><td class="mono">T1136, T1098</td></tr>
+<tr><td class="box">☐</td><td>6</td><td>Add a Run-key entry and a scheduled task</td><td class="mono">T1547.001, T1053.005</td></tr>
+<tr><td class="box">☐</td><td>7</td><td>Open outbound connection to Kali port 4444</td><td class="mono">T1071</td></tr>
+<tr><td class="box">☐</td><td>8</td><td>Clear the Security log</td><td class="mono">T1070.001</td></tr></table>
+<p class="mono">Run: attack.ps1 -Steps 3,5,7 &nbsp;·&nbsp; or without a VM: forensight demo --steps 1,3,5,7</p>
+<button onclick="print()">Print</button></body></html>

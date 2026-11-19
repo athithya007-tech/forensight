@@ -19,7 +19,7 @@ export function TimelineView({ events, currentId, onSelect, phases, height = 360
     const t = new Timeline(el.current, items.current, {
       height, stack: true, zoomMin: 5_000, zoomMax: 1000 * 60 * 60 * 24 * 14, orientation: { axis: "top" },
       margin: { item: { horizontal: 2, vertical: 4 } }, showCurrentTime: false, tooltip: { followMouse: true, overflowMethod: "cap" },
-      groupOrder: "content", moment: undefined as any,
+      groupOrder: "content",
     } as any);
     t.on("select", (p: any) => { const id = p.items?.[0]; if (typeof id === "number") onSel.current?.(id); });
     tl.current = t;
@@ -63,5 +63,5 @@ export function TimelineView({ events, currentId, onSelect, phases, height = 360
     }
   }, [currentId, events, focusOnCurrent]);
 
-  return <div ref={el} className="w-full" />;
+  return <div ref={el} className="w-full h-full" />;
 }

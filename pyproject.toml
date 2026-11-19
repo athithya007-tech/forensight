@@ -17,6 +17,7 @@ dependencies = [
   "qrcode>=7.4",
   "fastapi>=0.110",
   "uvicorn>=0.29",
+  "websockets>=12",
 ]
 
 [project.optional-dependencies]

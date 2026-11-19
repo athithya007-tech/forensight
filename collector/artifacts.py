@@ -14,7 +14,7 @@ from .logs import homes
 
 WINDOWS = platform.system() == "Windows"
 SUSPICIOUS_EXT = {".exe", ".dll", ".ps1", ".bat", ".cmd", ".vbs", ".js", ".hta", ".scr", ".com", ".msi", ".jar",
-                  ".sh", ".py", ".elf", ".bin", ".txt", ".zip", ".docm", ".xlsm"}
+                  ".sh", ".py", ".elf", ".bin", ".docm", ".xlsm"}
 MAX_FILE = 25 * 2**20
 MAX_FILES = 400
 

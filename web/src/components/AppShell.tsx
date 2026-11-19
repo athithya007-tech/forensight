@@ -83,7 +83,7 @@ export function CaseShell({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 shrink-0 border-b border-border bg-surface/80 backdrop-blur flex items-center gap-3 px-4">
           <button className="lg:hidden text-muted" onClick={() => setSidebar(true)} aria-label="Open menu"><Menu size={20} /></button>
-          <span className="font-mono text-[13px]">{id}</span>
+          <span className="font-mono text-[13px] truncate">{id}</span>
           {s.data?.analyzed && (
             <span className="inline-flex items-center gap-1.5 text-[13px]">
               <span className="text-muted">score</span>
@@ -91,7 +91,7 @@ export function CaseShell({ children }: { children: ReactNode }) {
             </span>
           )}
           <div className="flex-1" />
-          <button onClick={() => setChat(true)} className="inline-flex items-center gap-1.5 rounded-md border border-accent/50 bg-accent/10 text-accent px-3 py-1.5 text-[13px] hover:bg-accent/20">
+          <button onClick={() => setChat(true)} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-accent/50 bg-accent/10 text-accent px-3 py-1.5 text-[13px] hover:bg-accent/20">
             <Sparkles size={14} />Ask AI
           </button>
           <ThemeToggle />

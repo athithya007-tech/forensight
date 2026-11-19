@@ -80,17 +80,25 @@ class _RichListener:
         m = ev["module"]
         if ev.get("pct") is not None:
             self.p.update(self.overall, completed=ev["pct"])
-        if m in ("collect",) or m.startswith("analyze:done"):
+        if m == "collect" or m.startswith("analyze:done"):
+            if ev["status"] == "complete":
+                for name, tid in self.tasks.items():
+                    if not self.p.tasks[tid].finished:
+                        self.p.update(tid, total=1, completed=1, description=f"[green]✔ {name.split(':', 1)[-1]}")
             return
-        if m not in self.tasks:
-            self.tasks[m] = self.p.add_task(m, total=None)
+        if st_new := (m not in self.tasks):
+            # a new stage starting means earlier still-open stages are finished
+            for name, tid in self.tasks.items():
+                if not self.p.tasks[tid].finished and name.startswith("analyze:") and m.startswith("analyze:"):
+                    self.p.update(tid, total=1, completed=1, description=f"[green]✔ {name.split(':', 1)[1]}")
+            self.tasks[m] = self.p.add_task(m.split(":", 1)[-1], total=None)
         t = self.tasks[m]
         st = ev["status"]
         if st == "file":
             self.hashes += 1
             self.p.console.print(f"  [grey50]{ev['file']}[/] → [green]{ev['sha256'][:16]}…[/]")
         elif st == "done" or st == "complete":
-            self.p.update(t, total=1, completed=1, description=f"[green]✔ {m}")
+            self.p.update(t, total=1, completed=1, description=f"[green]✔ {m.split(':', 1)[-1]}")
         elif st == "failed":
             self.p.update(t, total=1, completed=1, description=f"[red]✘ {m}: {ev.get('message', '')}")
         elif st == "skipped":
@@ -142,7 +150,7 @@ def collect(case: Optional[str] = typer.Option(None, "--case", help="Case ID; a 
     t.add_column("Module")
     t.add_column("Result")
     for m, r in res["modules"].items():
-        t.add_row(m, "[green]ok[/]" if r == "ok" else f"[red]{r}[/]")
+        t.add_row(m, "[green]ok[/]" if r == "ok" else "[yellow]skipped[/] (no RAM tool in tools/)" if r == "skipped" else f"[red]{r}[/]")
     console.print(t)
     console.print(f"[bold]{res['artifacts']}[/] artifacts, {res['bytes'] / 2**20:.1f} MB, SHA-256 chained in manifest.json "
                   f"({res['seconds']:.0f}s). Next: [cyan]forensight analyze --case {d.name}[/]")

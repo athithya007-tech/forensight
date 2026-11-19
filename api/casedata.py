@@ -123,14 +123,16 @@ class CaseData:
                  f"({', '.join(f'{n} {k}' for k, n in self.severity_counts(f).items() if n and k != 'Info')})."]
         if s.get("attack_start"):
             parts.append(f"Malicious activity spans {s['attack_start'][11:16]} to {s['attack_end'][11:16]} UTC on "
-                         f"{s['attack_start'][:10]}, across {len(self.phases())} phase(s).")
-        events = {e["id"]: e for e in self.events(include_raw=False)[0]}
-        for ph in self.phases():
-            pf = [x for x in f if any(events.get(i, {}).get("phase_index") == ph["index"] for i in x["event_ids"])]
-            pf.sort(key=lambda x: (-sev.RANK[x["severity"]], x["first_seen"]))
-            if pf:
-                top = "; ".join(dict.fromkeys(x["title"] for x in pf[:3]))
-                parts.append(f"{ph['label']} ({ph['start'][11:16]}–{ph['end'][11:16]} UTC): {top}.")
+                         f"{s['attack_start'][:10]}" + (f", in {len(self.phases())} separate phases." if len(self.phases()) > 1 else " as one continuous intrusion."))
+        # Narrative: the first finding for each tactic, in the order the attacker reached it
+        seen, steps = set(), []
+        for x in sorted(f, key=lambda x: x["first_seen"]):
+            t = x["tactic"] or "Other"
+            if t not in seen and x["severity"] != "Info":
+                seen.add(t)
+                steps.append(f"{x['first_seen'][11:16]} {t} - {x['title']}")
+        if steps:
+            parts.append("Sequence (UTC): " + "; ".join(steps[:8]) + ".")
         ips = [i["value"] for i in self.iocs() if i["type"] == "ip"]
         if ips:
             parts.append(f"Activity is linked to {', '.join(ips[:3])}.")

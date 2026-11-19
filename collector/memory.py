@@ -40,7 +40,7 @@ def collect(ctx: Ctx) -> None:
     if not cmd:
         ctx.log(MODULE, "no RAM acquisition tool found (put winpmem/avml in tools/); skipping RAM capture", "WARN")
         ctx.emit(MODULE, "skipped", message="No winpmem/avml found in tools/ or PATH")
-        return
+        return "skipped"
     total = psutil.virtual_memory().total
     ctx.log(MODULE, f"starting RAM capture: {' '.join(cmd)} (expected ~{total // 2**20} MB)")
     proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
@@ -56,5 +56,5 @@ def collect(ctx: Ctx) -> None:
     if proc.returncode != 0 or not dest.exists() or dest.stat().st_size == 0:
         ctx.log(MODULE, f"RAM capture failed (exit {proc.returncode}): {err.strip()[:300]}", "ERROR")
         ctx.emit(MODULE, "failed", message="RAM capture failed; continuing with live collection")
-        return
+        return "failed: RAM capture tool error (see audit.log)"
     ctx.register(MODULE, dest, pct=100)

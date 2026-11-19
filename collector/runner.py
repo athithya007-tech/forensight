@@ -61,9 +61,10 @@ def run(case_dir: Path, profile: str = "full", modules: list[str] | None = None,
         ctx.emit(name, "running", pct=100 * i / len(selected))
         started = time.time()
         try:
-            fn(ctx)
-            results[name] = "ok"
-            ctx.emit(name, "done", pct=100 * (i + 1) / len(selected))
+            outcome = fn(ctx)
+            results[name] = outcome if isinstance(outcome, str) else "ok"
+            if results[name] == "ok":
+                ctx.emit(name, "done", pct=100 * (i + 1) / len(selected))
             ctx.log(name, f"module finished in {time.time() - started:.1f}s")
         except Exception as e:  # noqa: BLE001  — one failing module never stops collection
             results[name] = f"failed: {e}"

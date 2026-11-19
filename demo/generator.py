@@ -127,12 +127,12 @@ def build_windows(steps: list[int], t0: datetime) -> tuple[Builder, dict]:
         b.sec(4624, b.at(1.75), {"TargetUserName": "admin", "TargetDomainName": HOST, "LogonType": 3, "IpAddress": ATTACKER,
                                  "IpPort": "40026", "WorkstationName": "kali", "TargetLogonId": "0x3e1f20",
                                  "AuthenticationPackageName": "NTLM", "LogonProcessName": "NtLmSsp"})
-        b.truth.append({"step": 1, "ts": iso(b.at(1.75)), "techniques": STEPS[1][1]})
+        b.truth.append({"step": 1, "ts": iso(b.at(0)), "techniques": STEPS[1][1]})
     if 2 in steps:
         when = b.at(3)
         b.sec(4624, when, {"TargetUserName": "admin", "TargetDomainName": HOST, "LogonType": 10, "IpAddress": ATTACKER,
                            "IpPort": "40112", "WorkstationName": "kali", "TargetLogonId": "0x3e7a21", "LogonProcessName": "User32"})
-        for eid, dt in ((21, 0.05), (25, 0.06)):
+        for eid, dt in ((21, 0.005), (25, 0.008)):
             b.ev("LocalSessionManager", "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational", eid, when + timedelta(minutes=dt),
                  {"User": "VICTIM-WIN\\admin", "SessionID": 2, "Address": ATTACKER}, 1040,
                  "Microsoft-Windows-TerminalServices-LocalSessionManager")
@@ -201,7 +201,8 @@ def build_windows(steps: list[int], t0: datetime) -> tuple[Builder, dict]:
                                                  "User": "VICTIM-WIN\\admin"})
         state["tasks"].append({"name": r"\UpdaterTask", "action": tr, "author": "VICTIM-WIN\\admin", "run_as": "SYSTEM",
                                "status": "Ready", "schedule": "At logon time", "created": iso(tw)})
-        state["files"].append({"original_path": UP_PS1, "name": "up.ps1", "content": REVSHELL.encode(), "mtime": tw - timedelta(seconds=5)})
+        state["files"].append({"original_path": UP_PS1, "name": "up.ps1", "content": b"Write-Output 'lab persistence placeholder'\r\n",
+                                "mtime": tw - timedelta(seconds=5)})
         b.truth.append({"step": 6, "ts": iso(when), "techniques": STEPS[6][1]})
     if 7 in steps:
         when = b.at(12)

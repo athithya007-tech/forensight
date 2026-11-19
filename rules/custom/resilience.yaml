@@ -29,7 +29,7 @@ match:
   EventID: [21, 25]
   Channel|contains: LocalSessionManager
   Address|re: "^\\d+\\.\\d+\\.\\d+\\.\\d+$"
-description: "RDP session for {User} from {Address} (event {EventID})"
+description: "RDP session logon for {User} from {Address} (TerminalServices-LocalSessionManager)"
 dedupe: "{User}{Address}"
 playbook:
   - Confirm with the account owner whether this RDP session was expected

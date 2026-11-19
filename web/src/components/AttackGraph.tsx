@@ -54,7 +54,9 @@ export function AttackGraph({ nodes, edges, highlightId, highlightEdgeEventId, o
     c.on("tap", "node", (e) => onSel.current?.(e.target.data() as GraphNode));
     c.on("tap", (e) => { if (e.target === c) onSel.current?.(null); });
     cy.current = c;
-    return () => { c.destroy(); cy.current = null; };
+    const ro = new ResizeObserver(() => { c.resize(); c.fit(undefined, 24); });
+    ro.observe(el.current);
+    return () => { ro.disconnect(); c.destroy(); cy.current = null; };
   }, [nodes, edges, layout]);
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export function AttackGraph({ nodes, edges, highlightId, highlightEdgeEventId, o
     }
     if (highlightId) {
       const n = c.getElementById(highlightId);
-      if (n.nonempty()) { n.removeClass("dim").addClass("hl"); c.animate({ center: { eles: n }, zoom: Math.max(c.zoom(), 1) } as any, { duration: 350 }); }
+      if (n.nonempty()) n.removeClass("dim").addClass("hl");
     }
     if (highlightEdgeEventId != null) c.edges().filter((e) => e.data("event_id") === highlightEdgeEventId).removeClass("dim").addClass("hl");
   }, [highlightId, highlightEdgeEventId, activeEventIds, nodes]);
