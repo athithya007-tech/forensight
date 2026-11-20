@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { CaseShell } from "./components/AppShell";
+import { VersionBanner } from "./components/VersionBanner";
 import AttackPage from "./pages/Attack";
 import CaseList from "./pages/CaseList";
 import Collect from "./pages/Collect";
@@ -17,6 +18,8 @@ import VerifyPage from "./pages/Verify";
 
 export default function App() {
   return (
+    <>
+    <VersionBanner />
     <Routes>
       <Route path="/" element={<CaseList />} />
       <Route path="/verify/:id" element={<VerifyPage />} />
@@ -40,5 +43,6 @@ export default function App() {
       } />
       <Route path="*" element={<CaseList />} />
     </Routes>
+    </>
   );
 }

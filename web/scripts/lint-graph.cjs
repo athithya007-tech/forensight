@@ -16,7 +16,7 @@ async function lint(page, url) {
   return page.evaluate(() => {
     const cy = window.__fsGraph, issues = [];
     const inter = (a, b, pad = 0) => a.x1 < b.x2 - pad && a.x2 > b.x1 + pad && a.y1 < b.y2 - pad && a.y2 > b.y1 + pad;
-    const nodes = cy.nodes().filter((n) => n.visible());
+    const nodes = cy.nodes("[!lane]").filter((n) => n.visible());
     const body = (n) => n.boundingBox({ includeLabels: false, includeOverlays: false });
     const label = (n) => n.boundingBox({ includeNodes: false, includeEdges: false, includeLabels: true, includeOverlays: false });
     const arr = nodes.toArray();
@@ -43,7 +43,7 @@ async function lint(page, url) {
     });
     const fontPx = parseFloat(arr[0].style("font-size")) * cy.zoom();
     if (fontPx < 9) issues.push({ code: "font-too-small", msg: `labels render at ${fontPx.toFixed(1)}px at the default fit (min 9px)` });
-    const ext = cy.extent(), all = cy.elements().boundingBox();
+    const ext = cy.extent(), all = cy.elements().boundingBox({ includeUnderlays: false });
     if (all.x1 < ext.x1 - 1 || all.y1 < ext.y1 - 1 || all.x2 > ext.x2 + 1 || all.y2 > ext.y2 + 1) issues.push({ code: "clipped", msg: "graph extends beyond the visible canvas" });
     return { nodes: arr.length, edges: cy.edges().length, zoom: +cy.zoom().toFixed(2), fontPx: +fontPx.toFixed(1), issues };
   });

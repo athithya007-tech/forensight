@@ -136,20 +136,41 @@ def render_html(ctx: dict) -> str:
     return env.get_template("report.html").render(**ctx)
 
 
+class ReportError(RuntimeError):
+    """A report failure with a one-line fix the dashboard and CLI can show."""
+
+
 def _write_pdf(ctx: dict, html: str, rdir: Path, content_hash: str, case_dir: Path) -> str:
     """Default: the built-in fpdf2 report (bundled fonts, identical on every OS, no system libraries).
-    FORENSIGHT_PDF_ENGINE=weasyprint prints the HTML report instead (needs GTK/Pango; falls back if missing)."""
+    FORENSIGHT_PDF_ENGINE=weasyprint prints the HTML report instead (needs GTK/Pango; falls back if missing).
+    The PDF is written to a temporary file first, so a viewer holding the old PDF never leaves a broken file."""
     import os
+    target, tmp = rdir / "report.pdf", rdir / "report.pdf.tmp"
+    engine = "forensight"
     if os.environ.get("FORENSIGHT_PDF_ENGINE", "forensight").lower() == "weasyprint":
         try:
             from weasyprint import HTML
-            HTML(string=html, base_url=str(rdir)).write_pdf(rdir / "report.pdf")
-            return "weasyprint"
+            HTML(string=html, base_url=str(rdir)).write_pdf(tmp)
+            engine = "weasyprint"
         except (ImportError, OSError) as e:
             audit(case_dir, "report", f"WeasyPrint unavailable ({str(e)[:120]}); using the built-in PDF engine", "WARN")
-    from .pdf_report import write_pdf
-    write_pdf(ctx, rdir / "report.pdf", content_hash[:16])
-    return "forensight"
+    if engine == "forensight":
+        try:
+            from .pdf_report import write_pdf
+        except ImportError as e:
+            raise ReportError(f"The PDF library is missing ({e.name or e}). In your project folder run: pip install -e . "
+                              "then restart forensight serve.") from e
+        try:
+            write_pdf(ctx, tmp, content_hash[:16])
+        except Exception as e:  # noqa: BLE001 - retry once with system fonts before giving up
+            audit(case_dir, "report", f"PDF with bundled fonts failed ({type(e).__name__}: {e}); retrying with system fonts", "WARN")
+            write_pdf(ctx, tmp, content_hash[:16], use_bundled_fonts=False)
+    try:
+        os.replace(tmp, target)
+    except PermissionError as e:
+        raise ReportError("report.pdf is open in another program (for example Adobe Reader), which locks it on Windows. "
+                          "Close the PDF and press Generate again.") from e
+    return engine
 
 
 def generate(case_dir: Path, formats=("pdf", "html"), ai: bool = False, base_url: str = "http://localhost:8080") -> dict:

@@ -235,6 +235,77 @@ def verify(case: str = typer.Option(..., "--case", help="Case ID")):
 
 
 @app.command()
+def doctor():
+    """Check this computer can run ForenSight: Python, packages, fonts, a test PDF and the dashboard build."""
+    import importlib
+    import tempfile
+    from core.version import __version__
+    ok = True
+    t = Table(title=f"ForenSight {__version__} - setup check", show_lines=False)
+    t.add_column("Check"); t.add_column("Result"); t.add_column("Fix if needed", style="cyan")
+
+    def row(name, good, detail, fix=""):
+        nonlocal ok
+        ok = ok and good is not False
+        mark = "[green]OK[/]" if good else ("[yellow]optional[/]" if good is None else "[bold red]FAIL[/]")
+        t.add_row(name, f"{mark}  {detail}", "" if good else fix)
+
+    v = sys.version_info
+    row("Python", (3, 11) <= v[:2] <= (3, 13) or None if v[:2] > (3, 13) else v[:2] >= (3, 11), f"{v.major}.{v.minor}.{v.micro}",
+        "Use Python 3.11-3.13 (yara-python has no wheels for newer versions yet)")
+    for mod, pkg, need in [("fpdf", "fpdf2", True), ("qrcode", "qrcode", True), ("PIL", "pillow", True), ("nacl", "pynacl", True),
+                           ("fastapi", "fastapi", True), ("uvicorn", "uvicorn", True), ("websockets", "websockets", True),
+                           ("psutil", "psutil", True), ("Evtx", "python-evtx", None), ("yara", "yara-python", None)]:
+        try:
+            m = importlib.import_module(mod)
+            row(pkg, True, getattr(m, "__version__", getattr(m, "FPDF_VERSION", "installed")))
+        except Exception as e:  # noqa: BLE001
+            row(pkg, False if need else None, f"missing ({type(e).__name__})" + ("" if need else ", extra checks skipped"),
+                'pip install -e .' if need else ('pip install -e ".[yara]"' if pkg == "yara-python" else 'pip install -e ".[analysis]"'))
+    fonts = Path(__file__).parent / "api" / "fonts"
+    n = len(list(fonts.glob("*.ttf")))
+    row("Report fonts", n >= 6, f"{n} bundled in api/fonts", "git pull, then pip install -e .")
+    old_env = {k: os.environ.get(k) for k in ("FORENSIGHT_CASES", "FORENSIGHT_HOME")}
+    try:  # the exact path the dashboard uses: tiny demo case -> analyze -> signed report, in a throwaway folder
+        from analyzer.runner import run as run_analysis
+        from api.report import generate as make_report
+        from core.signing import verify_file
+        from demo.generator import generate as make_demo
+        with tempfile.TemporaryDirectory() as td:
+            os.environ["FORENSIGHT_CASES"] = str(Path(td) / "cases")
+            os.environ["FORENSIGHT_HOME"] = str(Path(td) / "home")
+            d = make_demo(steps=[1, 4])
+            run_analysis(d)
+            make_report(d)
+            pdf = d / "report" / "report.pdf"
+            good = pdf.read_bytes()[:4] == b"%PDF" and verify_file(pdf, d / "report" / "report.sig")["valid"]
+            row("Test report (PDF + signature)", good, f"{pdf.stat().st_size // 1024} KB, signature valid" if good else "signature invalid")
+    except Exception as e:  # noqa: BLE001
+        row("Test report (PDF + signature)", False, f"{type(e).__name__}: {str(e)[:100]}",
+            "pip install -e . then run forensight doctor again")
+    finally:
+        for k, val in old_env.items():
+            if val is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = val
+    dist = Path(__file__).parent / "web" / "dist" / "index.html"
+    row("Dashboard build", dist.exists(), "web/dist found" if dist.exists() else "web/dist missing", "cd web; npm install; npm run build")
+    try:
+        import json as _j
+        import urllib.request
+        with urllib.request.urlopen("http://127.0.0.1:8080/api/health", timeout=1.5) as r:
+            sv = _j.load(r).get("version", "older than 1.2")
+        row("Running server", sv == __version__, f"port 8080 runs {sv}",
+            "An old 'forensight serve' is still running: press Ctrl+C in its window and start it again")
+    except Exception:  # noqa: BLE001
+        row("Running server", None, "not running on port 8080 (fine)")
+    console.print(t)
+    console.print("[green]All required checks passed.[/]" if ok else "[bold red]Fix the FAIL rows above, then run forensight doctor again.[/]")
+    raise typer.Exit(0 if ok else 1)
+
+
+@app.command()
 def serve(case: Optional[str] = typer.Option(None, "--case", help="Open this case's dashboard"),
           host: str = typer.Option("127.0.0.1", "--host", help="Bind address (localhost only by default)"),
           port: int = typer.Option(8080, "--port")):

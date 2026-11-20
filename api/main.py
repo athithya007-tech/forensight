@@ -25,7 +25,9 @@ from . import chat as chatmod
 from . import views
 from .casedata import CaseData
 
-app = FastAPI(title="ForenSight API", version="1.0.0")
+from core.version import __version__ as _VERSION
+
+app = FastAPI(title="ForenSight API", version=_VERSION)
 JOBS: dict[str, dict] = {}
 
 
@@ -75,8 +77,9 @@ def post_case(body: NewCase):
 
 @app.get("/api/health")
 def health():
+    from core.version import __version__
     from . import llm
-    return {"ok": True, "cases_root": str(cases_root()), "ollama": llm.available()}
+    return {"ok": True, "version": __version__, "cases_root": str(cases_root()), "ollama": llm.available()}
 
 
 def _job(fn, *args) -> str:
@@ -88,7 +91,8 @@ def _job(fn, *args) -> str:
             JOBS[jid]["result"] = fn(*args)
             JOBS[jid]["status"] = "done"
         except Exception as e:  # noqa: BLE001
-            JOBS[jid].update(status="failed", error=str(e), trace=traceback.format_exc(limit=4))
+            msg = str(e) if type(e).__name__ == "ReportError" else f"{type(e).__name__}: {e}. Run 'forensight doctor' to check your setup."
+            JOBS[jid].update(status="failed", error=msg, trace=traceback.format_exc(limit=6))
     threading.Thread(target=run, daemon=True).start()
     return jid
 

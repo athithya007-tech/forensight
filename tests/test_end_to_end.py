@@ -159,3 +159,30 @@ def test_clean_case_report(demo_case):
     d = demo_case(steps=[])
     make_report(d)
     assert verify_file(d / "report/report.pdf", d / "report/report.sig")["valid"]
+
+
+def test_server_and_dashboard_versions_match():
+    """The dashboard warns users running a stale server; that only works if both sides carry the same version."""
+    import re
+    from pathlib import Path
+    from core.version import __version__
+    root = Path(__file__).resolve().parent.parent
+    ts = (root / "web/src/version.ts").read_text()
+    assert re.search(r'APP_VERSION = "([^"]+)"', ts).group(1) == __version__
+    assert f'version = "{__version__}"' in (root / "pyproject.toml").read_text()
+
+
+def test_report_error_when_pdf_is_locked(demo_case, monkeypatch):
+    """Windows locks a PDF that is open in a viewer: the user gets a one-line fix, not a stack trace."""
+    import os
+    import api.report as rep
+    d = demo_case(steps=[1])
+    make_report(d)
+    real = os.replace
+    def locked(src, dst):
+        if str(dst).endswith("report.pdf"):
+            raise PermissionError(13, "The process cannot access the file")
+        return real(src, dst)
+    monkeypatch.setattr(os, "replace", locked)
+    with pytest.raises(rep.ReportError, match="open in another program"):
+        make_report(d)
