@@ -25,15 +25,15 @@ export default function TimelinePage() {
   const byId = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
   return (
     <div className="space-y-4">
-      <PageHeader title="Timeline" subtitle={`${q.data?.total ?? 0} events · all times UTC · drag to pan, scroll to zoom`}
-        actions={<>
-          <a href={`/api/cases/${id}/report/file/timeline.csv`}><Button><Download size={14} />CSV</Button></a>
-          <a href={`/api/cases/${id}/report/file/timeline.jsonl`}><Button><Download size={14} />JSONL (Timesketch)</Button></a>
-        </>} />
+      <PageHeader title="Timeline" subtitle={`${q.data?.total ?? 0} events, all times in UTC. Drag to pan, scroll to zoom, click an event to open its evidence.`}
+        actions={(q.data?.total ?? 0) > 0 ? <>
+          <a href={`/api/cases/${id}/report/file/timeline.csv`} title="Opens in Excel"><Button><Download size={14} />Download CSV</Button></a>
+          <a href={`/api/cases/${id}/report/file/timeline.jsonl`} title="Import into Timesketch"><Button><Download size={14} />JSONL for Timesketch</Button></a>
+        </> : undefined} />
       <FilterBar filters={f} onChange={f.set} sources={q.data?.sources ?? []} tactics={q.data?.tactics ?? []} />
       {q.error ? <ErrorState error={q.error} /> : q.isLoading ? <Loading /> : !events.length ? <Card><Empty title="No events match these filters" /></Card> : (
         <>
-          <TimelineView events={events} phases={s.data?.phases} currentId={sel} focusOnCurrent={false} height={380}
+          <TimelineView events={events} phases={s.data?.phases} currentId={sel} focusOnCurrent={false} height="auto"
             onSelect={(eid) => { setSel(eid); const e = byId.get(eid); if (e) open(e.evidence_ref); }} />
           <DataTable<TimelineEvent> rows={events} onRowClick={(e) => { setSel(e.id); open(e.evidence_ref); }}
             rowClass={(e) => (e.id === sel ? "bg-amber/15" : "")}

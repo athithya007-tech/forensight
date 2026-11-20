@@ -11,11 +11,14 @@
     @bottom-right { content: "Report hash {{ report_hash }}"; font: 7.5pt monospace; color: #64748b; }
   }
   @page :first { @bottom-left { content: ""; } }
-  :root { --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --accent:#0891b2; }
+  :root { --ink:#1C1B18; --muted:#5F594E; --line:#D9D3C5; --accent:#C2281D; --paper:#FBFAF6; --well:#F3F0E9; }
   * { box-sizing: border-box; }
-  body { font-family: Inter, "Segoe UI", "DejaVu Sans", sans-serif; color: var(--ink); font-size: 9.5pt; line-height: 1.45; margin: 0; }
-  h1 { font-size: 24pt; margin: 0 0 4pt; letter-spacing: -0.02em; }
-  h2 { font-size: 14pt; margin: 18pt 0 6pt; padding-bottom: 3pt; border-bottom: 2px solid var(--ink); page-break-after: avoid; }
+  body { background: var(--paper); font-family: "Instrument Sans", "Segoe UI", "DejaVu Sans", sans-serif; color: var(--ink); font-size: 9.5pt; line-height: 1.45; margin: 0; }
+  h1, h2, .exec, .lead { font-family: Newsreader, Georgia, "Times New Roman", serif; }
+  h1 { font-size: 26pt; font-weight: 500; margin: 0 0 4pt; letter-spacing: -0.02em; }
+  h2 { font-size: 16pt; font-weight: 500; margin: 20pt 0 6pt; padding-bottom: 3pt; border-bottom: 1.5px solid var(--ink); page-break-after: avoid; }
+  .tape { background: var(--accent); color: #fff; font-size: 7pt; font-weight: 700; letter-spacing: .06em; white-space: nowrap; overflow: hidden; padding: 3pt 0; margin: 6pt -15mm 14pt; }
+  .lead { font-size: 12.5pt; line-height: 1.5; max-width: 68ch; }
   h3 { font-size: 11pt; margin: 12pt 0 4pt; page-break-after: avoid; }
   .mono, code { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 8pt; word-break: break-all; }
   .muted { color: var(--muted); }
@@ -28,7 +31,7 @@
   {% for k, c in colors.items() %}.sev-{{ k }} { background: {{ c }}; }{% endfor %}
   .sev-Medium { color: #111; }
   .cover { height: 250mm; display: flex; flex-direction: column; page-break-after: always; }
-  .brand { font-weight: 800; color: var(--accent); letter-spacing: .08em; font-size: 10pt; }
+  .brand { font-weight: 700; color: var(--ink); letter-spacing: .08em; font-size: 9pt; }
   .verdict { display: inline-block; padding: 6pt 14pt; border-radius: 6pt; font-size: 16pt; font-weight: 800; color: #fff; margin: 12pt 0; }
   .v-Compromised { background: #EF4444; } .v-Suspicious { background: #EAB308; color:#111; } .v-Clean { background: #22C55E; }
   .kv { display: grid; grid-template-columns: 34mm 1fr; gap: 2pt 8pt; margin: 10pt 0; }
@@ -36,8 +39,8 @@
   .counts { display: flex; gap: 6pt; margin: 8pt 0; }
   .count { flex: 1; border: 1px solid var(--line); border-radius: 5pt; padding: 6pt; text-align: center; }
   .count b { display: block; font-size: 16pt; }
-  .exec { background: #f1f5f9; border-left: 4px solid var(--accent); padding: 8pt 10pt; border-radius: 3pt; }
-  .ai { background: #fefce8; border-left: 4px solid #EAB308; padding: 8pt 10pt; margin-top: 8pt; }
+  .exec { background: var(--well); padding: 9pt 11pt; border-radius: 4pt; font-size: 11pt; }
+  .ai { background: #fefce8; border: 1px solid #EAB308; padding: 8pt 10pt; margin-top: 8pt; border-radius: 4pt; }
   .ai-label { font-weight: 800; font-size: 7.5pt; text-transform: uppercase; color: #a16207; letter-spacing: .06em; }
   .qr { margin-top: auto; display: flex; gap: 12pt; align-items: center; border-top: 1px solid var(--line); padding-top: 10pt; }
   .qr img { width: 30mm; height: 30mm; }
@@ -57,8 +60,9 @@
 
 <section class="cover">
   <div class="brand">FORENSIGHT · INCIDENT REPORT</div>
-  <h1>{{ case.name }}</h1>
-  <div class="mono muted">{{ case.id }}</div>
+  <div class="tape">{% for _ in range(8) %}EVIDENCE · DO NOT ALTER · {{ case.id }} · {% endfor %}</div>
+  <h1>{{ case.host }} {% if summary.verdict == 'Compromised' %}was compromised.{% elif summary.verdict == 'Suspicious' %}shows suspicious activity.{% else %}looks clean.{% endif %}</h1>
+  <div class="mono muted">{{ case.name }} · {{ case.id }}</div>
   <div><span class="verdict v-{{ summary.verdict }}">{{ summary.verdict }} · {{ summary.score }}/100</span></div>
   <div class="counts">
     {% for k in ['Critical','High','Medium','Low','Info'] %}<div class="count"><b style="color: {{ colors[k] }}">{{ sev_counts[k] }}</b>{{ k }}</div>{% endfor %}

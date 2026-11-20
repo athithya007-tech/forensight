@@ -136,3 +136,26 @@ def test_demo_survives_antivirus_quarantine(demo_case, monkeypatch, mode):
     assert verify(d)["ok"]
     events = [json.loads(l) for l in (d / "progress.jsonl").read_text().splitlines()]
     assert {"baseline", "files"} <= {e["module"] for e in events if e["status"] == "done"}
+
+
+@pytest.mark.parametrize("fonts", ["bundled", "system", "none"])
+def test_pdf_engine_needs_no_system_libraries(demo_case, monkeypatch, fonts):
+    """The default PDF engine is pure Python (works on Windows without GTK) with bundled fonts; it must still
+    produce a signed PDF if the bundled fonts are missing, with system fonts or with Latin-1 core fonts."""
+    import api.pdf_report as pr
+    if fonts != "bundled":
+        monkeypatch.setattr(pr, "FONTS", pr.Path("/nonexistent"))
+    if fonts == "none":
+        monkeypatch.setattr(pr, "FONT_CANDIDATES", [])
+    d = demo_case(steps=[1, 4, 8])
+    make_report(d)
+    pdf = d / "report/report.pdf"
+    assert pdf.read_bytes()[:4] == b"%PDF" and pdf.stat().st_size > 5000
+    assert json.loads((d / "report/report.json").read_text())["pdf_engine"] == "forensight"
+    assert verify_file(pdf, d / "report/report.sig")["valid"]
+
+
+def test_clean_case_report(demo_case):
+    d = demo_case(steps=[])
+    make_report(d)
+    assert verify_file(d / "report/report.pdf", d / "report/report.sig")["valid"]

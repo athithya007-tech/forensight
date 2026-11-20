@@ -58,5 +58,7 @@ export const createCase = (body: { name: string; investigator: string; notes?: s
 export const startDemo = (steps: number[]) => post<{ case_id: string; job: string }>("/api/demo", { steps, analyze: true });
 export const startCollect = (id: string, profile: string) => post<{ job: string }>(`${c(id)}/collect`, { profile, analyze: true });
 export const startReport = (id: string, ai: boolean) => post<{ job: string }>(`${c(id)}/report`, { formats: ["pdf", "html"], ai, base_url: window.location.origin });
+export const useHealth = () => useQuery({ queryKey: ["health"], queryFn: () => api<{ ok: boolean; ollama: boolean; cases_root: string }>("/api/health"), staleTime: 30_000 });
+export const startAnalyze = (id: string) => post<{ job: string }>(`${c(id)}/analyze`);
 export const getJob = (jid: string) => api<{ status: string; error?: string; result?: any }>(`/api/jobs/${jid}`);
 export const publicVerify = (id: string) => api<any>(`/api/verify/${encodeURIComponent(id)}`);

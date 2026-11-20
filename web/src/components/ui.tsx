@@ -76,13 +76,14 @@ export function Empty({ title, hint, icon, action }: { title: string; hint?: Rea
   );
 }
 
-export function ErrorState({ error }: { error: unknown }) {
+export function ErrorState({ error, title = "This view could not load", hint }: { error: unknown; title?: string; hint?: ReactNode }) {
   const msg = error instanceof Error ? error.message : String(error);
   return (
     <div role="alert" className="flex items-start gap-3 rounded-lg border border-critical/40 bg-critical/5 p-4 text-sm">
       <AlertTriangle className="text-critical shrink-0 mt-0.5" size={16} />
-      <div><div className="font-semibold text-ink">This view could not load: {msg}</div>
-        <div className="text-ink-2 mt-0.5">Check that <code className="font-mono text-xs">forensight serve</code> is running and that the case has been analyzed.</div></div>
+      <div className="min-w-0"><div className="font-semibold text-ink">{title}</div>
+        <div className="text-ink mt-0.5 break-words">{msg}</div>
+        <div className="text-ink-2 mt-1">{hint ?? <>Check that <code className="font-mono text-xs">forensight serve</code> is still running in its terminal, then reload the page.</>}</div></div>
     </div>
   );
 }

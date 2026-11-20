@@ -30,32 +30,42 @@ export function FilterBar({ filters, onChange, sources, tactics }: { filters: Fi
           </button>
         )}
       </div>
-      <div className="flex flex-wrap gap-1.5 items-center">
-        <span className="label w-16">Severity</span>
-        {SEVERITIES.map((s: Severity) => {
-          const on = filters.severity.includes(s);
-          return (
-            <button key={s} onClick={() => toggle("severity", s)}
-              aria-pressed={on}
-              className={cx("inline-flex items-center gap-1.5 rounded-sm px-2 h-6 text-xs border transition-colors duration-150", on ? "border-ink bg-ink text-paper" : "text-ink border-rule hover:border-ink-2")}>
-              <span className="w-2 h-2 rounded-[1px]" style={{ background: SEV_VAR[s] }} />{s}</button>
-          );
-        })}
-        {tactics.length > 0 && <span className="label ml-4 mr-1">Tactic</span>}
-        {tactics.map((t) => (
-          <button key={t} onClick={() => toggle("tactic", t)}
-            aria-pressed={filters.tactic.includes(t)}
-            className={cx("rounded-sm px-2 h-6 text-xs border transition-colors duration-150", filters.tactic.includes(t) ? "border-ink bg-ink text-paper" : "border-rule text-ink hover:border-ink-2")}>{t}</button>
-        ))}
+      <div className="flex items-start gap-3">
+        <span className="label w-16 shrink-0 pt-1">Severity</span>
+        <div className="flex flex-wrap gap-1.5">
+          {SEVERITIES.map((s: Severity) => {
+            const on = filters.severity.includes(s);
+            return (
+              <button key={s} onClick={() => toggle("severity", s)}
+                aria-pressed={on}
+                className={cx("inline-flex items-center gap-1.5 rounded-sm px-2 h-6 text-xs border transition-colors duration-150", on ? "border-ink bg-ink text-paper" : "text-ink border-rule hover:border-ink-2")}>
+                <span className="w-2 h-2 rounded-[1px]" style={{ background: SEV_VAR[s] }} />{s}</button>
+            );
+          })}
+        </div>
       </div>
+      {tactics.length > 0 && (
+        <div className="flex items-start gap-3">
+          <span className="label w-16 shrink-0 pt-1">Tactic</span>
+          <div className="flex flex-wrap gap-1.5">
+            {tactics.map((t) => (
+              <button key={t} onClick={() => toggle("tactic", t)}
+                aria-pressed={filters.tactic.includes(t)}
+                className={cx("rounded-sm px-2 h-6 text-xs border transition-colors duration-150", filters.tactic.includes(t) ? "border-ink bg-ink text-paper" : "border-rule text-ink hover:border-ink-2")}>{t}</button>
+            ))}
+          </div>
+        </div>
+      )}
       {sources.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 items-center">
-          <span className="label w-16">Source</span>
+        <div className="flex items-start gap-3">
+          <span className="label w-16 shrink-0 pt-1">Source</span>
+          <div className="flex flex-wrap gap-1.5">
           {sources.map((s) => (
             <button key={s} onClick={() => toggle("source", s)}
               aria-pressed={filters.source.includes(s)}
               className={cx("rounded-sm px-2 h-6 text-2xs font-mono border transition-colors duration-150", filters.source.includes(s) ? "border-ink bg-ink text-paper" : "border-rule text-ink-2 hover:text-ink hover:border-ink-2")}>{s.replace(".evtx.jsonl", ".evtx")}</button>
           ))}
+          </div>
         </div>
       )}
     </div>

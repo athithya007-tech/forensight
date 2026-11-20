@@ -1,6 +1,6 @@
 import { ShieldCheck, ShieldX } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { publicVerify } from "../api/client";
 import { Brand, ThemeSync } from "../components/AppShell";
 import { VerdictBadge } from "../components/SeverityBadge";
@@ -15,7 +15,8 @@ export default function VerifyPage() {
   return (
     <div className="min-h-full flex flex-col items-center p-6">
       <ThemeSync />
-      <div className="mb-8"><Brand /></div>
+      <div className="mb-8 w-full max-w-xl flex items-center justify-between"><Brand />
+        <Link to={`/cases/${id}`} className="text-sm text-ink-2 hover:text-ink underline">Open this case</Link></div>
       {q.isLoading ? <Loading label="Checking signatures…" /> : q.error ? <ErrorState error={q.error} /> : (
         <div className="w-full max-w-xl bg-sheet border border-rule rounded-xl p-8 text-center space-y-4">
           {ok ? <ShieldCheck size={72} className="mx-auto text-ok" /> : <ShieldX size={72} className="mx-auto text-critical" />}

@@ -21,13 +21,13 @@ function CaseRowView({ c }: { c: CaseRow }) {
   const col = c.verdict ? VERDICT_COLOR[c.verdict] : "rgb(var(--rule))";
   return (
     <tr onClick={() => nav(`/cases/${c.id}`)} className="border-t border-rule cursor-pointer hover:bg-amber/[0.07] transition-colors duration-100 group">
-      <td className="py-3 pl-4 pr-3">
-        <div className="font-serif text-lg leading-tight group-hover:underline underline-offset-4 decoration-1">{c.name}</div>
-        <div className="font-mono text-2xs text-ink-2 mt-0.5">{c.id}</div>
+      <td className="py-3 pl-4 pr-3 min-w-[14rem]">
+        <div className="font-serif text-lg leading-tight whitespace-nowrap group-hover:underline underline-offset-4 decoration-1">{c.name}</div>
+        <div className="font-mono text-2xs text-ink-2 mt-0.5 whitespace-nowrap">{c.id}</div>
       </td>
       <td className="py-3 px-3 text-sm whitespace-nowrap">{c.host}<div className="text-xs text-ink-2">{c.os}</div></td>
       <td className="py-3 px-3"><VerdictBadge verdict={c.verdict} /></td>
-      <td className="py-3 px-3 w-44">
+      <td className="py-3 px-3 w-36">
         {c.score != null ? (
           <div className="flex items-center gap-2">
             <div className="relative flex-1 h-2 border border-ink/70 rounded-[1px] bg-sheet">
@@ -35,9 +35,9 @@ function CaseRowView({ c }: { c: CaseRow }) {
             </div>
             <span className="tnum text-sm font-medium w-7 text-right">{c.score}</span>
           </div>
-        ) : <span className="text-xs text-ink-2">{c.status}</span>}
+        ) : <span className="text-xs text-ink-2">{c.status === "created" ? "no evidence yet" : "needs analysis"}</span>}
       </td>
-      <td className="py-3 px-3 pr-4 text-xs text-ink-2 font-mono whitespace-nowrap">{fmtDateTime(c.created_at)}<div className="font-sans">{c.investigator}</div></td>
+      <td className="py-3 px-3 pr-4 text-xs text-ink-2 whitespace-nowrap"><span className="font-mono">{fmtDateTime(c.created_at).slice(5, 16)}</span><div>{c.investigator}</div></td>
     </tr>
   );
 }

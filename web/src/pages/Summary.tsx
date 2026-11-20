@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Line, LineChart, ReferenceDot, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import { useEvents, useSummary } from "../api/client";
+import { useEvents, useReportStatus, useSummary } from "../api/client";
 import { SEVERITIES, type Severity } from "../api/types";
 import { EvidenceChip } from "../components/EvidenceChip";
 import { ScoreScale, SEV_VAR, TimeScale, TimeScaleLabels } from "../components/ForensicScale";
@@ -48,6 +48,7 @@ export default function SummaryPage() {
   const nav = useNavigate();
   const q = useSummary(id);
   const ev = useEvents(id, { severity: ["Critical", "High", "Medium", "Low"] });
+  const rep = useReportStatus(id);
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorState error={q.error} />;
   const s = q.data!;
@@ -78,10 +79,14 @@ export default function SummaryPage() {
             {(HEADLINE[s.verdict] ?? HEADLINE.Clean)(h.hostname ?? s.case.host)}
           </h1>
           <p className="font-serif text-lg leading-relaxed text-ink mt-3 max-w-[64ch]">{(s.exec_summary ?? "").split(" Sequence (UTC):")[0]}</p>
-          <div className="flex flex-wrap gap-2 mt-4">
-            <Link to={`/cases/${id}/story`} className="inline-flex items-center gap-1.5 rounded bg-ink text-paper px-3 h-8 text-sm font-medium hover:bg-tape transition-colors">
-              Replay the attack<ArrowRight size={14} /></Link>
-            <Link to={`/cases/${id}/report`} className="inline-flex items-center rounded border border-rule bg-sheet px-3 h-8 text-sm font-medium hover:border-ink-2 transition-colors">Open the signed report</Link>
+          <div className="flex flex-wrap gap-2 mt-5">
+            {s.top_findings.length > 0 && (
+              <Link to={`/cases/${id}/story`} className="inline-flex items-center gap-1.5 rounded bg-ink text-paper px-3.5 h-9 text-sm font-medium hover:bg-tape transition-colors">
+                Replay the attack<ArrowRight size={14} /></Link>
+            )}
+            <Link to={`/cases/${id}/report`} className={s.top_findings.length ? "inline-flex items-center rounded border border-rule bg-sheet px-3.5 h-9 text-sm font-medium hover:border-ink-2 transition-colors"
+              : "inline-flex items-center gap-1.5 rounded bg-ink text-paper px-3.5 h-9 text-sm font-medium hover:bg-tape transition-colors"}>
+              {rep.data?.files["report.pdf"] ? "Open the signed report" : "Create the signed report"}</Link>
           </div>
         </div>
         <div className="space-y-5 lg:pt-1">

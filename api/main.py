@@ -347,8 +347,10 @@ def report_file(case_id: str, name: str, inline: bool = False):
     if "/" in name or ".." in name:
         raise HTTPException(400, "bad name")
     p = d / "report" / name
+    if not p.exists() and name.startswith("timeline."):
+        p = d / "analysis" / name  # timeline exports exist as soon as the case is analyzed
     if not p.exists():
-        raise HTTPException(404, f"{name} not found")
+        raise HTTPException(404, f"{name} is not available yet. Analyze the case or generate the report first.")
     return FileResponse(p, media_type=_MEDIA.get(p.suffix, "application/octet-stream"), filename=f"{case_id}_{name}",
                         content_disposition_type="inline" if inline else "attachment")
 

@@ -63,9 +63,9 @@ def cases():
     for col in ("ID", "Name", "Host", "Status", "Score", "Verdict"):
         t.add_column(col)
     for c in list_cases():
-        v = c.get("verdict") or "-"
+        v = c.get("verdict")
         t.add_row(c["id"], c.get("name", ""), c.get("host", ""), c.get("status", ""), str(c.get("score", "-")),
-                  f"[{VERDICT_STYLE.get(v, '')}] {v} [/]")
+                  f"[{VERDICT_STYLE[v]}] {v} [/]" if v in VERDICT_STYLE else "[grey50]not analyzed[/]")
     console.print(t)
 
 
@@ -267,8 +267,8 @@ def demo(steps: str = typer.Option("1,2,3,4,5,6,7,8", "--steps", help="Attack st
         from api.report import generate as rep
         s = run(d)
         _print_summary(d, s)
-        rep(d, formats=["pdf", "html"])
-        console.print(f"[green]✔[/] report: {d / 'report/report.pdf'}")
+        out = rep(d, formats=["pdf", "html"])
+        console.print(f"[green]✔[/] report: {out.get('pdf')}")
 
 
 @app.command()

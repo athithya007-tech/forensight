@@ -136,6 +136,22 @@ def render_html(ctx: dict) -> str:
     return env.get_template("report.html").render(**ctx)
 
 
+def _write_pdf(ctx: dict, html: str, rdir: Path, content_hash: str, case_dir: Path) -> str:
+    """Default: the built-in fpdf2 report (bundled fonts, identical on every OS, no system libraries).
+    FORENSIGHT_PDF_ENGINE=weasyprint prints the HTML report instead (needs GTK/Pango; falls back if missing)."""
+    import os
+    if os.environ.get("FORENSIGHT_PDF_ENGINE", "forensight").lower() == "weasyprint":
+        try:
+            from weasyprint import HTML
+            HTML(string=html, base_url=str(rdir)).write_pdf(rdir / "report.pdf")
+            return "weasyprint"
+        except (ImportError, OSError) as e:
+            audit(case_dir, "report", f"WeasyPrint unavailable ({str(e)[:120]}); using the built-in PDF engine", "WARN")
+    from .pdf_report import write_pdf
+    write_pdf(ctx, rdir / "report.pdf", content_hash[:16])
+    return "forensight"
+
+
 def generate(case_dir: Path, formats=("pdf", "html"), ai: bool = False, base_url: str = "http://localhost:8080") -> dict:
     case_dir = Path(case_dir)
     rdir = case_dir / "report"
@@ -153,18 +169,16 @@ def generate(case_dir: Path, formats=("pdf", "html"), ai: bool = False, base_url
     if "html" in formats:
         (rdir / "report.html").write_text(html, encoding="utf-8")
         out["html"] = str(rdir / "report.html")
+    engine = None
     if "pdf" in formats:
-        try:
-            from weasyprint import HTML
-        except ImportError as e:
-            raise RuntimeError("WeasyPrint is not installed: pip install weasyprint") from e
-        HTML(string=html, base_url=str(rdir)).write_pdf(rdir / "report.pdf")
+        engine = _write_pdf(ctx, html, rdir, content_hash, case_dir)
         sig = sign_file(rdir / "report.pdf", rdir / "report.sig", {"case_id": ctx["case"]["id"], "signed_at": now_iso(),
-                                                                    "content_hash": content_hash})
+                                                                    "content_hash": content_hash, "engine": engine})
         out["pdf"] = str(rdir / "report.pdf")
         out["signature"] = f"{rdir / 'report.sig'} (Ed25519, sha256 {sig['sha256'][:16]}…)"
     out["iocs"] = f"{rdir / 'iocs.csv'}, {rdir / 'iocs.stix.json'}"
-    meta = {"generated_at": ctx["generated_at"], "content_hash": content_hash, "formats": list(formats), "ai": bool(ctx["ai_summary"])}
+    meta = {"generated_at": ctx["generated_at"], "content_hash": content_hash, "formats": list(formats), "ai": bool(ctx["ai_summary"]),
+            "ai_requested": bool(ai), "pdf_engine": engine}
     (rdir / "report.json").write_text(json.dumps(meta, indent=1))
-    audit(case_dir, "report", f"report generated formats={list(formats)} content_hash={content_hash[:16]} ai={bool(ctx['ai_summary'])}")
+    audit(case_dir, "report", f"report generated formats={list(formats)} engine={engine} content_hash={content_hash[:16]} ai={bool(ctx['ai_summary'])}")
     return out

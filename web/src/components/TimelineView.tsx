@@ -17,9 +17,9 @@ export function TimelineView({ events, currentId, onSelect, phases, height = 360
   useEffect(() => {
     if (!el.current) return;
     const t = new Timeline(el.current, items.current, {
-      height, stack: true, zoomMin: 5_000, zoomMax: 1000 * 60 * 60 * 24 * 14, orientation: { axis: "top" },
+      ...(height === "auto" ? { maxHeight: 640 } : { height }), stack: true, zoomMin: 5_000, zoomMax: 1000 * 60 * 60 * 24 * 14, orientation: { axis: "top", item: "top" },
       margin: { item: { horizontal: 4, vertical: 6 }, axis: 10 }, showCurrentTime: false, tooltip: { followMouse: true, overflowMethod: "cap" },
-      groupOrder: "content", verticalScroll: true,
+      groupOrder: "content", verticalScroll: height !== "auto",
     } as any);
     t.on("select", (p: any) => { const id = p.items?.[0]; if (typeof id === "number") onSel.current?.(id); });
     tl.current = t;
@@ -44,7 +44,7 @@ export function TimelineView({ events, currentId, onSelect, phases, height = 360
       type: "background", className: "phase", content: p.label }));
     if (events.length) {
       const ts = events.map((e) => +new Date(e.timestamp_utc));
-      const min = Math.min(...ts), max = Math.max(...ts), pad = Math.max(60_000, (max - min) * 0.05);
+      const min = Math.min(...ts), max = Math.max(...ts), pad = Math.max(90_000, (max - min) * 0.12);
       t.setWindow(new Date(min - pad), new Date(max + pad), { animation: false });
     }
   }, [events, phases]);

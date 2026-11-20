@@ -1,54 +1,93 @@
 import { Download, FileText, Loader2, QrCode, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getJob, startReport, useReportStatus } from "../api/client";
-import { Button, Card, Empty, ErrorState, Loading, Mono, PageHeader } from "../components/ui";
+import { getJob, startReport, useHealth, useReportStatus, useSummary } from "../api/client";
+import { Button, Card, Empty, ErrorState, Loading, Mono, PageHeader, cx, fmtDateTime } from "../components/ui";
 
-const FILES: [string, string][] = [["report.pdf", "PDF report (signed)"], ["report.html", "HTML report"], ["report.sig", "Ed25519 signature"], ["iocs.csv", "IOCs (CSV)"],
-  ["iocs.stix.json", "IOCs (STIX 2.1)"], ["timeline.csv", "Timeline (CSV)"], ["timeline.json", "Timeline (JSON)"]];
+const FILES: [string, string, string][] = [
+  ["report.pdf", "Signed PDF report", "For managers, legal and the case file"],
+  ["report.html", "Web version of the report", "Same content, opens in any browser"],
+  ["report.sig", "Digital signature", "Proves the PDF was not edited"],
+  ["iocs.csv", "Indicators of compromise (CSV)", "IPs, file fingerprints, accounts to search for"],
+  ["iocs.stix.json", "Indicators (STIX 2.1)", "For threat-intel platforms"],
+  ["timeline.csv", "Timeline (CSV)", "Opens in Excel"],
+  ["timeline.json", "Timeline (JSON)", "For scripts and Timesketch"],
+];
 
 export function DownloadButtons({ id, files }: { id: string; files: Record<string, boolean> }) {
+  const avail = FILES.filter(([f]) => files[f]);
+  if (!avail.length) return <p className="text-sm text-ink-2">Downloads appear here once the report is generated.</p>;
   return (
-    <div className="flex flex-col gap-2">
-      {FILES.filter(([f]) => files[f]).map(([f, label]) => (
-        <a key={f} href={`/api/cases/${id}/report/file/${f}`} className="flex items-center gap-2 rounded-md border border-rule px-3 py-2 hover:border-ink text-sm">
-          <Download size={14} className="text-ink" /><span className="flex-1">{label}</span><Mono className="text-ink-2">{f}</Mono></a>
+    <ul className="flex flex-col gap-2">
+      {avail.map(([f, label, hint]) => (
+        <li key={f}>
+          <a href={`/api/cases/${id}/report/file/${f}`} className="group flex items-start gap-3 rounded border border-rule bg-paper px-3 py-2.5 hover:border-ink transition-colors">
+            <Download size={15} className="text-ink-2 group-hover:text-ink mt-0.5 shrink-0" />
+            <span className="min-w-0"><span className="block text-sm font-medium text-ink">{label}</span>
+              <span className="block text-xs text-ink-2">{hint}</span></span>
+          </a>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
 export default function ReportPage() {
   const { id = "" } = useParams();
   const q = useReportStatus(id);
+  const s = useSummary(id);
+  const health = useHealth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ai, setAi] = useState(false);
   const [v, setV] = useState(0);
+  const aiAvailable = !!health.data?.ollama;
+  const analyzed = !!s.data?.analyzed;
   async function gen() {
     setBusy(true); setErr(null);
     try {
-      const { job } = await startReport(id, ai);
-      for (;;) { await new Promise((r) => setTimeout(r, 800)); const j = await getJob(job); if (j.status === "failed") throw new Error(j.error); if (j.status === "done") break; }
+      const { job } = await startReport(id, ai && aiAvailable);
+      for (;;) { await new Promise((r) => setTimeout(r, 700)); const j = await getJob(job); if (j.status === "failed") throw new Error(j.error); if (j.status === "done") break; }
       await q.refetch(); setV((x) => x + 1);
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   }
-  if (q.isLoading) return <Loading />;
+  if (q.isLoading || s.isLoading) return <Loading />;
   if (q.error) return <ErrorState error={q.error} />;
   const has = q.data!.files["report.pdf"];
+  const meta = q.data!.meta;
   return (
-    <div className="space-y-4">
-      <PageHeader title="Report" subtitle={q.data!.meta ? <>Generated {q.data!.meta.generated_at} · content hash <Mono>{q.data!.meta.content_hash.slice(0, 16)}</Mono>{q.data!.meta.ai ? " · includes AI summary" : ""}</> : "No report yet"}
+    <div className="space-y-5">
+      <PageHeader title="Report"
+        subtitle={meta && has ? <>Generated {fmtDateTime(meta.generated_at)} UTC and signed. Content hash <Mono>{meta.content_hash.slice(0, 16)}</Mono>{meta.ai ? ". Includes an AI-written summary." : "."}</>
+          : "A signed PDF that explains the incident in plain words for managers and legal, with the full evidence in the appendices."}
         actions={<>
-          <label className="inline-flex items-center gap-1.5 text-sm text-ink-2" title="Needs Ollama running locally; labelled AI-generated"><input type="checkbox" checked={ai} onChange={(e) => setAi(e.target.checked)} className="accent-[rgb(var(--ink))]" />AI summary</label>
-          <Button variant="primary" onClick={gen} disabled={busy}>{busy ? <Loader2 size={14} className="animate-spin" /> : has ? <RefreshCw size={14} /> : <FileText size={14} />}{has ? "Regenerate" : "Generate report"}</Button>
-          <Link to={`/verify/${id}`} target="_blank"><Button><QrCode size={14} />Verify page</Button></Link>
+          <label className={cx("inline-flex items-center gap-1.5 text-sm", aiAvailable ? "text-ink-2 cursor-pointer" : "text-ink-2/60 cursor-not-allowed")}
+            title={aiAvailable ? "Adds a summary written by your local AI model, clearly labelled AI-generated" : "Needs Ollama running on this computer (ollama.com). The report is complete without it."}>
+            <input type="checkbox" checked={ai && aiAvailable} disabled={!aiAvailable} onChange={(e) => setAi(e.target.checked)} className="accent-[rgb(var(--ink))]" />
+            AI summary{!aiAvailable && <span className="text-xs">(Ollama not running)</span>}
+          </label>
+          <Button variant="primary" onClick={gen} busy={busy} disabled={!analyzed} title={analyzed ? undefined : "Analyze the case first"}>
+            {!busy && (has ? <RefreshCw size={14} /> : <FileText size={14} />)}{busy ? "Generating…" : has ? "Regenerate" : "Generate report"}
+          </Button>
+          {has && <Link to={`/verify/${id}`} target="_blank"><Button><QrCode size={14} />Check signature</Button></Link>}
         </>} />
-      {err && <ErrorState error={err} />}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card title="Preview" note="The HTML rendering of the signed PDF. Download the PDF for the signed copy." className="lg:col-span-2" bodyClass="!px-0 !pb-0">
-          {has ? <iframe key={v} title="Report preview" src={`/api/cases/${id}/report/file/report.html?inline=true`} className="w-full h-[75vh] rounded-b-lg bg-white border-t border-rule" />
-            : <Empty title="No report generated" hint="Generate the signed PDF: executive summary, scope, timeline, findings, IOCs, ATT&CK map, recommendations, chain of custody." />}
+      {err && <ErrorState error={err} title="The report could not be generated" hint="The full error is in this case's audit.log. Everything else in the dashboard keeps working." />}
+      <div className="grid lg:grid-cols-[1fr_340px] gap-5 items-start">
+        <Card title="Preview" note={has ? "This is the signed PDF. Use Downloads to save it." : undefined} bodyClass="!px-0 !pb-0">
+          {has ? (
+            <object key={v} data={`/api/cases/${id}/report/pdf#view=FitH&toolbar=0`} type="application/pdf" aria-label="Report preview"
+              className="w-full h-[78vh] rounded-b-lg bg-well border-t border-rule">
+              {/* browsers without a PDF viewer get the web version */}
+              <iframe title="Report preview (web version)" src={`/api/cases/${id}/report/file/report.html?inline=true`} className="w-full h-[78vh] bg-white" />
+            </object>
+          ) : (
+            <div className="px-5 pb-5">
+              <Empty title={analyzed ? "No report yet" : "Analyze the case first"}
+                hint={analyzed ? <>Press <b>Generate report</b>. Page 1 gives the verdict, the attack measured in time, what happened step by step and what to do now.
+                  The appendices hold the timeline, findings, ATT&CK map, indicators and the chain of custody.</>
+                  : "The report is built from the analysis. Use “Analyze now” at the top of this page."} />
+            </div>
+          )}
         </Card>
         <Card title="Downloads"><DownloadButtons id={id} files={q.data!.files} /></Card>
       </div>
