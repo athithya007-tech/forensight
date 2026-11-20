@@ -305,6 +305,14 @@ def doctor():
     raise typer.Exit(0 if ok else 1)
 
 
+@app.command("export-site")
+def export_site(out: Path = typer.Option(Path("web/dist"), "--out", help="Folder of the static dashboard build (npm run build:pages)")):
+    """Write read-only demo data next to a static dashboard build, for GitHub Pages."""
+    from api.static_export import export_site as run_export
+    ids = run_export(out)
+    console.print(f"[green]✔[/] exported {len(ids)} demo cases to {out / 'demo-data'}: {', '.join(ids)}")
+
+
 @app.command()
 def serve(case: Optional[str] = typer.Option(None, "--case", help="Open this case's dashboard"),
           host: str = typer.Option("127.0.0.1", "--host", help="Bind address (localhost only by default)"),

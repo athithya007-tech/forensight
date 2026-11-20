@@ -186,3 +186,17 @@ def test_report_error_when_pdf_is_locked(demo_case, monkeypatch):
     monkeypatch.setattr(os, "replace", locked)
     with pytest.raises(rep.ReportError, match="open in another program"):
         make_report(d)
+
+
+def test_static_site_export(tmp_path):
+    """The GitHub Pages demo is built from real API responses of freshly generated demo cases."""
+    from api.static_export import export_site
+    ids = export_site(tmp_path)
+    data = tmp_path / "demo-data"
+    assert len(ids) == 4 and json.loads((data / "health.json").read_text())["static"] is True
+    for cid in ids:
+        d = data / "cases" / cid
+        for f in ("summary", "graph", "events", "findings", "evidence", "verify", "chat-answers", "evidence-items"):
+            assert (d / f"{f}.json").exists(), (cid, f)
+        assert json.loads((d / "verify.json").read_text())["ok"]
+        assert (d / "report/file/report.pdf").read_bytes()[:4] == b"%PDF"

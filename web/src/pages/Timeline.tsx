@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useEvents, useSummary } from "../api/client";
+import { useEvents, useSummary, fileUrl } from "../api/client";
 import type { TimelineEvent } from "../api/types";
 import { DataTable } from "../components/DataTable";
 import { EvidenceChip } from "../components/EvidenceChip";
@@ -27,8 +27,8 @@ export default function TimelinePage() {
     <div className="space-y-4">
       <PageHeader title="Timeline" subtitle={`${q.data?.total ?? 0} events, all times in UTC. Drag to pan, scroll to zoom, click an event to open its evidence.`}
         actions={(q.data?.total ?? 0) > 0 ? <>
-          <a href={`/api/cases/${id}/report/file/timeline.csv`} title="Opens in Excel"><Button><Download size={14} />Download CSV</Button></a>
-          <a href={`/api/cases/${id}/report/file/timeline.jsonl`} title="Import into Timesketch"><Button><Download size={14} />JSONL for Timesketch</Button></a>
+          <a href={fileUrl(id, "timeline.csv")} download="timeline.csv" title="Opens in Excel"><Button><Download size={14} />Download CSV</Button></a>
+          <a href={fileUrl(id, "timeline.jsonl")} download="timeline.jsonl" title="Import into Timesketch"><Button><Download size={14} />JSONL for Timesketch</Button></a>
         </> : undefined} />
       <FilterBar filters={f} onChange={f.set} sources={q.data?.sources ?? []} tactics={q.data?.tactics ?? []} />
       {q.error ? <ErrorState error={q.error} /> : q.isLoading ? <Loading /> : !events.length ? <Card><Empty title="No events match these filters" /></Card> : (

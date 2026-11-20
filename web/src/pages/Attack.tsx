@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useAttack, useFindings } from "../api/client";
+import { STATIC, useAttack, useFindings } from "../api/client";
 import type { TechniqueCell } from "../api/types";
 import { EvidenceChip } from "../components/EvidenceChip";
 import { SeverityBadge } from "../components/SeverityBadge";
@@ -11,7 +11,7 @@ import { Button, Card, Empty, ErrorState, Loading, Mono, PageHeader, cx } from "
 const shade = (count: number, max: number) => `rgb(var(--tape) / ${(0.1 + 0.42 * (count / Math.max(1, max))).toFixed(2)})`;
 
 export function ExportLayerButton({ caseId }: { caseId: string }) {
-  return <a href={`/api/cases/${caseId}/attack/layer`} download><Button variant="primary"><Download size={14} />Export Navigator layer</Button></a>;
+  return <a href={STATIC ? `${import.meta.env.BASE_URL}demo-data/cases/${caseId}/attack/layer.json` : `/api/cases/${caseId}/attack/layer`} download={`${caseId}-navigator-layer.json`}><Button variant="primary"><Download size={14} />Export Navigator layer</Button></a>;
 }
 
 /** Tactic columns, detected techniques shaded by finding count (US-019, FR-41). Empty tactics collapse. */

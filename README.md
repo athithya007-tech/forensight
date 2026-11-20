@@ -1,18 +1,35 @@
 <div align="center">
 
-# ForenSight
+<img src="docs/banner.png" alt="ForenSight: a digital crime-scene kit for hacked computers. Collect, seal, analyze, correlate, report." width="100%">
 
-**A digital crime-scene kit for hacked computers.**
-It collects the clues, seals them so they can't be tampered with, works out what the attacker did,
-and tells the story in minutes instead of hours.
+<br/>
 
-![Python](https://img.shields.io/badge/python-3.11%20%E2%80%93%203.13-1C1B18)
-![React](https://img.shields.io/badge/dashboard-React%2018-1C1B18)
-![Tests](https://img.shields.io/badge/tests-33%20passing-26784A)
+**Collect the clues from a hacked computer, seal them so nobody can tamper with them,
+work out what the attacker did, and tell the story in minutes instead of hours.**
+
+[![Live demo](https://img.shields.io/badge/live%20demo-open%20in%20browser-C2281D?style=for-the-badge)](https://athithya007-tech.github.io/forensight/)
+[![Quick start](https://img.shields.io/badge/quick%20start-5%20minutes-1C1B18?style=for-the-badge)](#quick-start-5-minutes)
+
+![Version](https://img.shields.io/badge/version-1.2.0-1C1B18)
+![Python](https://img.shields.io/badge/python-3.11%20%E2%80%93%203.14-1C1B18)
+![Tests](https://img.shields.io/badge/tests-36%20passing-26784A)
+![ATT&CK](https://img.shields.io/badge/MITRE%20ATT%26CK-22%20techniques-C2281D)
 ![Platforms](https://img.shields.io/badge/runs%20on-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-1C1B18)
-![Offline](https://img.shields.io/badge/works-fully%20offline-C2281D)
+![Offline](https://img.shields.io/badge/works-fully%20offline-26784A)
 
-<img src="docs/screenshots/02-summary.png" alt="ForenSight case summary: VICTIM-WIN was compromised, score 100 of 100, the attack measured on a forensic scale" width="900">
+[**Live demo**](https://athithya007-tech.github.io/forensight/) ·
+[Why ForenSight](#why-forensight) ·
+[Quick start](#quick-start-5-minutes) ·
+[Tour](#a-tour-of-the-dashboard) ·
+[PDF report](#the-pdf-report) ·
+[Deploy](#deploying) ·
+[Troubleshooting](#troubleshooting)
+
+<br/>
+
+<img src="docs/replay.gif" alt="The attack graph replaying a break-in step by step: who got in, what ran, what stayed behind" width="900">
+
+<sub>The attack graph replaying the lab break-in one relationship at a time. Try it yourself in the <a href="https://athithya007-tech.github.io/forensight/">live demo</a>.</sub>
 
 </div>
 
@@ -21,6 +38,7 @@ and tells the story in minutes instead of hours.
 ## Contents
 
 - [What is ForenSight?](#what-is-forensight)
+- [Why ForenSight?](#why-forensight)
 - [How it works](#how-it-works)
 - [See it](#see-it)
 - [Quick start (5 minutes)](#quick-start-5-minutes)
@@ -30,9 +48,11 @@ and tells the story in minutes instead of hours.
 - [Command reference](#command-reference)
 - [What it detects](#what-it-detects)
 - [Results](#results)
+- [Deploying](#deploying)
 - [Troubleshooting](#troubleshooting)
 - [For developers](#for-developers)
 - [Safety and ethics](#safety-and-ethics)
+- [Acknowledgements](#acknowledgements)
 
 ---
 
@@ -61,6 +81,23 @@ the raw evidence, the **manager or lawyer** who needs a plain-English verdict, a
 
 ---
 
+## Why ForenSight?
+
+Great open-source DFIR tools exist, and ForenSight stands on their shoulders. Each one does one job brilliantly;
+an investigation needs all of them, in the right order, plus a story a non-expert can read.
+
+| | Typical toolkit | ForenSight |
+|---|---|---|
+| Collection | One tool per artefact, run by hand | One command, **order of volatility**, failures isolated per module |
+| Integrity | Hashes in a spreadsheet, if anyone remembers | **SHA-256 hash chain + Ed25519 signature**, verified in one click |
+| Detection | Sigma here, YARA there, memory somewhere else | **Rules, Sigma, YARA, Volatility 3 and threat intel** in one pass, mapped to ATT&CK |
+| Timeline | CSV exports merged by hand | **One correlated timeline**, attack phases detected, replayable |
+| Explaining it | An expert writes the report over days | **Plain-English verdict and signed PDF** with a verify-me QR code |
+| Asking questions | grep | **"How did the attacker get in?"** with every answer citing its exhibit |
+| Privacy | Cloud sandboxes | **Fully offline**; optional AI runs locally through Ollama |
+
+---
+
 ## How it works
 
 ```mermaid
@@ -86,7 +123,7 @@ flowchart LR
 
 | | |
 |---|---|
-| <img src="docs/screenshots/03-attack-story.png" alt="Attack story replay"><br/>**Attack story.** Press play and watch the attack unfold; the current event lights up on the graph, the timeline and the scale. | <img src="docs/screenshots/04-attack-graph.png" alt="Attack graph"><br/>**Attack graph.** Who connected to what. Hover a node to isolate its neighbours. |
+| <img src="docs/screenshots/03-attack-story.png" alt="Attack story replay"><br/>**Attack story.** Press play and watch the attack unfold; the current event lights up on the graph, the timeline and the scale. | <img src="docs/screenshots/04-attack-graph.png" alt="Attack graph"><br/>**Attack graph.** Three story lanes: who got in, what ran, what stayed behind. Replay it, search it, filter it, click to trace a whole chain. |
 | <img src="docs/screenshots/05-timeline.png" alt="Timeline"><br/>**Timeline.** Every event, grouped by evidence source, filterable by severity, tactic, source and time. | <img src="docs/screenshots/06-findings.png" alt="Findings"><br/>**Findings.** Each with its evidence, ATT&CK technique and recommended response. |
 | <img src="docs/screenshots/07-attack-map.png" alt="ATT&CK map"><br/>**ATT&CK map.** Detected techniques in kill-chain order; export a Navigator layer. | <img src="docs/screenshots/08-evidence-verified.png" alt="Evidence verified"><br/>**Chain of custody.** One click re-checks every fingerprint and the signed chain. |
 | <img src="docs/screenshots/09-ask-the-evidence.png" alt="Ask the evidence"><br/>**Ask the evidence.** Questions in plain English; every answer cites the exact evidence. | <img src="docs/screenshots/10-live-collection.png" alt="Live collection"><br/>**Live collection.** Watch modules run and files get fingerprinted in real time. |
@@ -98,7 +135,7 @@ flowchart LR
 
 You need **Python 3.11 to 3.13**, **Node.js 18+** and **Git**.
 On Windows, install Python from [python.org](https://python.org) and tick *"Add python.exe to PATH"*.
-On Python 3.14 the optional YARA scanner cannot install yet; everything else installs (see Troubleshooting).
+On Python 3.14 the optional YARA scanner is skipped automatically; everything else installs. Run `forensight doctor` afterwards to check the setup.
 
 ### Windows (PowerShell)
 
@@ -109,6 +146,7 @@ py -3.13 -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e ".[analysis,dev]"
 cd web; npm install; npm run build; cd ..
+forensight doctor
 forensight demo
 forensight serve
 ```
@@ -145,7 +183,7 @@ Every page has an **← All cases** link at the top of the sidebar to get back t
 | **Summary** | The verdict in one sentence, the score, the attack measured on the forensic scale, what to look at first | Click a mark on the scale to replay from that moment |
 | **Attack story** | Graph + timeline + replay controls | **Space** plays and pauses, the arrow keys step |
 | **Timeline** | Every event, by source | Filter to *High*, then click an event to see the raw evidence and its fingerprint |
-| **Attack graph** | IPs, accounts, programs, files and how they connect | Hover `powershell.exe`, then click it for its relationships |
+| **Attack graph** | Who got in → what ran → what stayed behind, as three lanes; colours show *how* things are linked | Press **Replay the attack**, type `powershell` in the search box, click a node to trace its whole chain, double-click to zoom, save it as PNG |
 | **Findings** | What matched, how sure, and what to do | Open a row for evidence and the recommended response |
 | **ATT&CK map** | Techniques by attacker goal | **Export Navigator layer** for MITRE's ATT&CK Navigator |
 | **Processes / Network** | Running programs and connections, from live state and memory | Tick *Flagged branches only* |
@@ -217,6 +255,8 @@ from RDP, Sysmon, PowerShell and Task Scheduler logs, live state, memory and the
 | `forensight serve [--port 8080]` | Starts the dashboard, bound to localhost |
 | `forensight cases` | Lists cases with verdict and score |
 | `forensight metrics --case ID` | Scores a demo case against the known attack steps |
+| `forensight doctor` | Checks your setup: Python, packages, fonts, a real signed test report, the dashboard build, a stale server |
+| `forensight export-site --out DIR` | Writes the read-only demo data for a static (GitHub Pages) build |
 
 Every command has `--help`, and every error says how to fix it.
 
@@ -271,12 +311,31 @@ Measured on the scripted lab attack, as asked for in the project brief:
 
 ---
 
+## Deploying
+
+| Where | What you get | How |
+|---|---|---|
+| **Your computer** | Everything | [Quick start](#quick-start-5-minutes) |
+| **GitHub Pages** | The full dashboard with four pre-analysed lab cases, read-only | Settings → Pages → Source: **GitHub Actions**. The included workflow publishes on every push |
+| **USB stick** | The collector, for the suspect machine | `pyinstaller forensight-collector.spec` |
+| **Lab server** | A shared dashboard for a team | `forensight serve --host 0.0.0.0` behind a VPN or an authenticating proxy |
+
+**Can the whole thing run on GitHub Pages?** No, and that's by design: Pages only serves static files, while the engine must
+run where the evidence is and must keep its signing key private. The Pages build is the real dashboard reading exported
+demo data, so visitors can explore every page, replay the attack, verify the evidence and download the signed PDF.
+Step-by-step instructions for all four options are in **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
+| **Anything odd** | Run `forensight doctor`: it checks every part and prints the exact fix for each failure |
+| **PDF report fails / old error after updating** | An old `forensight serve` is still running the old code. Press **Ctrl + C** in its window, run `pip install -e .`, start `forensight serve` again (the dashboard shows a yellow bar when this happens) |
+| *report.pdf is open in another program* | Close the PDF in Adobe Reader / Edge (Windows locks open files), then press **Generate** again |
 | `forensight` is not recognized | Activate the environment: `.venv\Scripts\Activate.ps1` (Windows) or `source .venv/bin/activate` |
-| `yara-python` fails to install ("Microsoft Visual C++ required") | Use Python 3.13, or install without YARA: `pip install -e ".[dev]" python-evtx` (hash checks still run) |
+| `yara-python` fails to install ("Microsoft Visual C++ required") | On Python 3.14+ it is skipped automatically. On older Pythons use the prebuilt wheel (3.11 to 3.13) or install without it; YARA scanning is then skipped and hash checks still run. Add it later with `pip install -e ".[yara]"` |
 | Page says *The web dashboard is not built* | `cd web`, `npm install`, `npm run build` |
 | Port 8080 is busy | `forensight serve --port 8090` |
 | Old design or icons after an update | `git pull`, rebuild the web app, then hard-refresh the browser (**Ctrl + Shift + R**) |
@@ -309,7 +368,7 @@ tests/       pytest: parsers, rules, custody, PDF, API, end to end
 | AI (optional) | Ollama, local only |
 
 ```bash
-pytest                                   # 33 tests
+pytest                                   # 36 tests
 cd web && npm run dev                     # dashboard with hot reload (proxies the API on :8080)
 npm run lint:graph --case=CASE-...        # attack-graph layout linter (needs forensight serve)
 python web/scripts/build-symbol-preview.py   # icon sheet: web/src/assets/icons/preview.html
@@ -324,5 +383,19 @@ python web/scripts/build-symbol-preview.py   # icon sheet: web/src/assets/icons/
 - ForenSight **reports**; it never deletes files, kills processes or blocks addresses.
 - Collected evidence can contain personal data. Keep case folders encrypted and delete them when the work is done.
 - The dashboard listens on localhost only; online lookups send only hashes and IP addresses, never file contents, and only with `--online`.
+
+---
+
+## Acknowledgements
+
+ForenSight is a student project that learns from and builds on the DFIR community's open work:
+[MITRE ATT&CK](https://attack.mitre.org) for the technique catalogue,
+[Sigma](https://github.com/SigmaHQ/sigma) for portable detection rules,
+[Chainsaw](https://github.com/WithSecureLabs/chainsaw) and [Hayabusa](https://github.com/Yamato-Security/hayabusa) for fast event-log hunting ideas,
+[Volatility 3](https://github.com/volatilityfoundation/volatility3) for memory analysis,
+[YARA](https://github.com/VirusTotal/yara) for file signatures,
+[Velociraptor](https://github.com/Velocidex/velociraptor) and [WinPmem](https://github.com/Velocidex/WinPmem) for collection,
+and [Timesketch](https://github.com/google/timesketch) as an export target. Dashboard graphs use
+[Cytoscape.js](https://js.cytoscape.org) and [vis-timeline](https://github.com/visjs/vis-timeline).
 
 <div align="center"><sub>Fonts: Newsreader, Instrument Sans and IBM Plex Mono under the SIL Open Font License (licences in <code>api/fonts/</code>).</sub></div>

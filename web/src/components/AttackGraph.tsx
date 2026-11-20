@@ -133,7 +133,7 @@ export function AttackGraph({ nodes, edges, highlightId, highlightEdgeEventId, o
         { selector: "edge.hl", style: { "line-color": amber, "target-arrow-color": amber, width: 4, "line-opacity": 1 } },
         { selector: "node.match", style: { "underlay-color": amber, "underlay-opacity": 0.5, "underlay-padding": 11, "border-color": amber, "border-width": 3 } },
         { selector: ".dim", style: { opacity: 0.14 } },
-        { selector: ".future", style: { opacity: 0.07 } },
+        { selector: ".future", style: { opacity: 0.07, "underlay-opacity": 0 } },
         { selector: "edge.live", style: { "line-color": amber, "target-arrow-color": amber, width: 4.5, "line-opacity": 1, "line-style": "dashed", "line-dash-pattern": [10, 6] as any } },
         { selector: "node.live", style: { "border-color": amber, "border-width": 5, "underlay-color": amber, "underlay-opacity": 0.4, "underlay-padding": 12 } },
         { selector: ".off", style: { display: "none" } },

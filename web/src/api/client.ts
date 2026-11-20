@@ -7,7 +7,58 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+/** Static build (GitHub Pages): no server. Reads pre-exported JSON from <base>/demo-data and answers
+ *  write actions with a friendly "install it" message. Built with `npm run build:pages`. */
+export const STATIC = import.meta.env.VITE_STATIC === "1";
+const BASE = import.meta.env.BASE_URL;  // "/" locally, "/<repo>/" on GitHub Pages
+export const DEMO_MSG = "This is the read-only online demo. Install ForenSight on your computer to collect, analyze and generate reports.";
+const cache = new Map<string, Promise<any>>();
+function load(rel: string) {
+  if (!cache.has(rel)) cache.set(rel, fetch(`${BASE}demo-data/${rel}`).then((r) => { if (!r.ok) throw new ApiError(404, "Not part of the online demo"); return r.json(); }));
+  return cache.get(rel)!;
+}
+/** URL of a downloadable file (report PDF, CSV…) in both modes. */
+export function fileUrl(id: string, name: string) {
+  return STATIC ? `${BASE}demo-data/cases/${id}/report/file/${name}` : `/api/cases/${encodeURIComponent(id)}/report/file/${name}`;
+}
+export const pdfUrl = (id: string) => (STATIC ? fileUrl(id, "report.pdf") : `/api/cases/${encodeURIComponent(id)}/report/pdf`);
+
+async function staticApi(path: string, init?: RequestInit): Promise<any> {
+  const [p, qs] = path.split("?");
+  const params = new URLSearchParams(qs ?? "");
+  const rel = decodeURIComponent(p.replace(/^\/api\//, ""));
+  const m = rel.match(/^cases\/([^/]+)\/(.+)$/);
+  if (init?.method === "POST") {
+    if (m && m[2] === "verify") return load(`cases/${m[1]}/verify.json`);
+    if (m && m[2] === "chat") {
+      const q = JSON.parse(String(init.body ?? "{}")).question as string;
+      const answers = await load(`cases/${m[1]}/chat-answers.json`);
+      return answers[q] ?? { type: "done", answer: "The online demo answers the suggested questions only. Install ForenSight to ask the evidence anything.", citations: [] };
+    }
+    throw new ApiError(403, DEMO_MSG);
+  }
+  if (m && m[2] === "events") {
+    const all = await load(`cases/${m[1]}/events.json`);
+    const list = (k: string) => params.get(k)?.split(",").filter(Boolean);
+    const sev = list("severity"), src = list("source"), tac = list("tactic");
+    const from = params.get("from"), to = params.get("to"), q = params.get("q")?.toLowerCase();
+    const items = all.items.filter((e: any) => (!sev || sev.includes(e.severity)) && (!src || src.includes(e.source)) && (!tac || tac.includes(e.tactic))
+      && (!from || e.timestamp_utc >= from) && (!to || e.timestamp_utc <= to)
+      && (!q || `${e.description} ${JSON.stringify(e.raw ?? "")} ${e.event_type} ${e.attck_id ?? ""}`.toLowerCase().includes(q)));
+    return { ...all, items, total: items.length };
+  }
+  if (m && m[2] === "evidence/item") {
+    const items = await load(`cases/${m[1]}/evidence-items.json`);
+    const it = items[params.get("ref") ?? ""];
+    if (!it) throw new ApiError(404, "This exhibit is not part of the online demo");
+    return it;
+  }
+  if (rel.startsWith("jobs/")) throw new ApiError(403, DEMO_MSG);
+  return load(`${rel}.json`);
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  if (STATIC) return staticApi(path, init);
   const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...init });
   if (!r.ok) {
     let msg = r.statusText;

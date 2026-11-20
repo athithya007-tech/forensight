@@ -1,6 +1,6 @@
 import { Bot, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "../api/client";
+import { STATIC, api } from "../api/client";
 import type { ChatMsg, Citation } from "../api/types";
 import { useUi } from "../stores/ui";
 import { Glyph } from "./Glyph";
@@ -33,6 +33,11 @@ export function ChatDrawer({ caseId }: { caseId: string }) {
     setMsgs((m) => [...m, { role: "user", content: question, citations: [] }, { role: "assistant", content: "", citations: [], pending: true }]);
     const update = (fn: (m: ChatMsg) => ChatMsg) => setMsgs((all) => [...all.slice(0, -1), fn(all[all.length - 1])]);
     try {
+      if (STATIC) {
+        const p = await api<any>(`/api/cases/${caseId}/chat`, { method: "POST", body: JSON.stringify({ question }) });
+        update(() => ({ role: "assistant", content: p.answer, citations: p.citations ?? [], model: p.model }));
+        return;
+      }
       const r = await fetch(`/api/cases/${caseId}/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
       const reader = r.body!.getReader();
       const dec = new TextDecoder();

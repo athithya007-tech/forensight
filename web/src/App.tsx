@@ -18,8 +18,9 @@ import VerifyPage from "./pages/Verify";
 
 export default function App() {
   return (
-    <>
+    <div className="h-full flex flex-col">
     <VersionBanner />
+    <div className="flex-1 min-h-0 overflow-auto">
     <Routes>
       <Route path="/" element={<CaseList />} />
       <Route path="/verify/:id" element={<VerifyPage />} />
@@ -43,6 +44,7 @@ export default function App() {
       } />
       <Route path="*" element={<CaseList />} />
     </Routes>
-    </>
+    </div>
+    </div>
   );
 }

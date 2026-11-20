@@ -1,7 +1,7 @@
 import { Download, FileText, Loader2, QrCode, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getJob, startReport, useHealth, useReportStatus, useSummary } from "../api/client";
+import { STATIC, fileUrl, getJob, pdfUrl, startReport, useHealth, useReportStatus, useSummary } from "../api/client";
 import { Button, Card, Empty, ErrorState, Loading, Mono, PageHeader, cx, fmtDateTime } from "../components/ui";
 
 const FILES: [string, string, string][] = [
@@ -21,7 +21,7 @@ export function DownloadButtons({ id, files }: { id: string; files: Record<strin
     <ul className="flex flex-col gap-2">
       {avail.map(([f, label, hint]) => (
         <li key={f}>
-          <a href={`/api/cases/${id}/report/file/${f}`} className="group flex items-start gap-3 rounded border border-rule bg-paper px-3 py-2.5 hover:border-ink transition-colors">
+          <a href={fileUrl(id, f)} download={STATIC ? f : undefined} className="group flex items-start gap-3 rounded border border-rule bg-paper px-3 py-2.5 hover:border-ink transition-colors">
             <Download size={15} className="text-ink-2 group-hover:text-ink mt-0.5 shrink-0" />
             <span className="min-w-0"><span className="block text-sm font-medium text-ink">{label}</span>
               <span className="block text-xs text-ink-2">{hint}</span></span>
@@ -66,7 +66,7 @@ export default function ReportPage() {
             <input type="checkbox" checked={ai && aiAvailable} disabled={!aiAvailable} onChange={(e) => setAi(e.target.checked)} className="accent-[rgb(var(--ink))]" />
             AI summary{!aiAvailable && <span className="text-xs">(Ollama not running)</span>}
           </label>
-          <Button variant="primary" onClick={gen} busy={busy} disabled={!analyzed} title={analyzed ? undefined : "Analyze the case first"}>
+          <Button variant="primary" onClick={gen} busy={busy} disabled={!analyzed || STATIC} title={STATIC ? "Not available in the online demo" : analyzed ? undefined : "Analyze the case first"}>
             {!busy && (has ? <RefreshCw size={14} /> : <FileText size={14} />)}{busy ? "Generating…" : has ? "Regenerate" : "Generate report"}
           </Button>
           {has && <Link to={`/verify/${id}`} target="_blank"><Button><QrCode size={14} />Check signature</Button></Link>}
@@ -75,10 +75,10 @@ export default function ReportPage() {
       <div className="grid lg:grid-cols-[1fr_340px] gap-5 items-start">
         <Card title="Preview" note={has ? "This is the signed PDF. Use Downloads to save it." : undefined} bodyClass="!px-0 !pb-0">
           {has ? (
-            <object key={v} data={`/api/cases/${id}/report/pdf#view=FitH&toolbar=0`} type="application/pdf" aria-label="Report preview"
+            <object key={v} data={`${pdfUrl(id)}#view=FitH&toolbar=0`} type="application/pdf" aria-label="Report preview"
               className="w-full h-[78vh] rounded-b-lg bg-well border-t border-rule">
               {/* browsers without a PDF viewer get the web version */}
-              <iframe title="Report preview (web version)" src={`/api/cases/${id}/report/file/report.html?inline=true`} className="w-full h-[78vh] bg-white" />
+              <iframe title="Report preview (web version)" src={STATIC ? fileUrl(id, "report.html") : `/api/cases/${id}/report/file/report.html?inline=true`} className="w-full h-[78vh] bg-white" />
             </object>
           ) : (
             <div className="px-5 pb-5">

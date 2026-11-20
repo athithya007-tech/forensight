@@ -2,7 +2,7 @@ import { CheckCircle2, Circle, Loader2, MinusCircle, Play, XCircle } from "lucid
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { startCollect, useSummary } from "../api/client";
+import { STATIC, startCollect, useSummary } from "../api/client";
 import type { ProgressEvent } from "../api/types";
 import { Button, Card, Mono, PageHeader } from "../components/ui";
 
@@ -40,6 +40,7 @@ export default function Collect() {
   const stream = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setEvs([]);
+    if (STATIC) return;
     const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/cases/${id}/progress`);
     ws.onopen = () => setConn("open");
     ws.onclose = () => setConn("closed");
