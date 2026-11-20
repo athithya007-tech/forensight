@@ -1,4 +1,5 @@
-import { FolderPlus, Play } from "lucide-react";
+import { Play } from "lucide-react";
+import { Glyph } from "../components/Glyph";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createCase, startDemo, useCases } from "../api/client";
@@ -112,7 +113,7 @@ export default function CaseList() {
             <h1 className="h-display text-3xl">Case register</h1>
             <p className="text-ink-2 text-sm mt-1">{cases.length ? `${cases.length} case${cases.length > 1 ? "s" : ""} on this machine, ${compromised} compromised. Every artifact is SHA-256 hashed and chained.` : "Collect, analyze, correlate and report, with every artifact hashed."}</p>
           </div>
-          <Button variant="primary" onClick={() => setDlg(true)}><FolderPlus size={14} />Open a new case</Button>
+          <Button variant="primary" onClick={() => setDlg(true)}><Glyph name="open-case" size={16} />Open a new case</Button>
         </div>
         <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
           <div className="min-w-0">

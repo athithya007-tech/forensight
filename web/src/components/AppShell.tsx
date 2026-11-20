@@ -1,34 +1,32 @@
-import {
-  Activity, ArrowLeftRight, ChevronRight, Clapperboard, Cpu, FileText, Fingerprint, GitFork, Grid3x3, LayoutDashboard, Menu, Moon, Network,
-  Radio, ShieldAlert, Sparkles, Sun, X,
-} from "lucide-react";
+import { ChevronRight, Menu, X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { Link, NavLink, useParams } from "react-router-dom";
 import { useSummary } from "../api/client";
 import { useUi } from "../stores/ui";
 import { ChatDrawer } from "./ChatDrawer";
+import { Glyph, type GlyphName } from "./Glyph";
 import { EvidenceDrawer } from "./EvidenceChip";
 import { VerdictBadge } from "./SeverityBadge";
 import { cx } from "./ui";
 
-const NAV: { heading: string; items: { to: string; label: string; icon: any; end?: boolean }[] }[] = [
+const NAV: { heading: string; items: { to: string; label: string; icon: GlyphName; end?: boolean }[] }[] = [
   { heading: "Read the case", items: [
-    { to: "", label: "Summary", icon: LayoutDashboard, end: true },
-    { to: "story", label: "Attack story", icon: Clapperboard },
-    { to: "timeline", label: "Timeline", icon: Activity },
-    { to: "graph", label: "Attack graph", icon: GitFork },
+    { to: "", label: "Summary", icon: "case-file", end: true },
+    { to: "story", label: "Attack story", icon: "replay" },
+    { to: "timeline", label: "Timeline", icon: "timeline" },
+    { to: "graph", label: "Attack graph", icon: "string-board" },
   ] },
   { heading: "Examine", items: [
-    { to: "findings", label: "Findings", icon: ShieldAlert },
-    { to: "attack", label: "ATT&CK map", icon: Grid3x3 },
-    { to: "processes", label: "Processes", icon: Cpu },
-    { to: "network", label: "Network", icon: Network },
-    { to: "diff", label: "Baseline diff", icon: ArrowLeftRight },
+    { to: "findings", label: "Findings", icon: "exhibit-lens" },
+    { to: "attack", label: "ATT&CK map", icon: "attack-map" },
+    { to: "processes", label: "Processes", icon: "process-tree" },
+    { to: "network", label: "Network", icon: "host-links" },
+    { to: "diff", label: "Baseline diff", icon: "baseline-diff" },
   ] },
   { heading: "Custody", items: [
-    { to: "evidence", label: "Evidence", icon: Fingerprint },
-    { to: "report", label: "Report", icon: FileText },
-    { to: "collect", label: "Live collection", icon: Radio },
+    { to: "evidence", label: "Evidence", icon: "evidence-bag" },
+    { to: "report", label: "Report", icon: "signed-report" },
+    { to: "collect", label: "Live collection", icon: "collector" },
   ] },
 ];
 
@@ -57,7 +55,7 @@ export function ThemeToggle({ onRail = false }: { onRail?: boolean }) {
   return (
     <button onClick={toggleTheme} title={theme === "light" ? "Switch to night shift" : "Switch to daylight"} aria-label="Toggle theme"
       className={cx("w-8 h-8 grid place-items-center rounded transition-colors duration-150", onRail ? "text-rail-ink/70 hover:text-rail-ink hover:bg-rail-2" : "text-ink-2 hover:text-ink hover:bg-well")}>
-      {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+      {theme === "dark" ? <Glyph name="daylight" size={17} /> : <Glyph name="night-shift" size={17} />}
     </button>
   );
 }
@@ -88,7 +86,7 @@ export function CaseShell({ children }: { children: ReactNode }) {
                 <NavLink key={n.to} to={`/cases/${id}${n.to ? `/${n.to}` : ""}`} end={n.end} onClick={() => setSidebar(false)}
                   className={({ isActive }) => cx("relative flex items-center gap-2.5 mx-2 px-3 h-8 rounded text-sm transition-colors duration-150",
                     isActive ? "bg-rail-ink text-rail font-medium" : "text-rail-ink/75 hover:text-rail-ink hover:bg-rail-2")}>
-                  <n.icon size={15} strokeWidth={1.75} />{n.label}
+                  <Glyph name={n.icon} size={17} />{n.label}
                 </NavLink>
               ))}
             </div>
@@ -116,7 +114,7 @@ export function CaseShell({ children }: { children: ReactNode }) {
           <div className="flex-1" />
           <button onClick={() => setChat(true)}
             className="inline-flex items-center gap-1.5 whitespace-nowrap rounded border border-ink px-3 h-8 text-sm font-medium text-ink hover:bg-ink hover:text-paper transition-colors duration-150">
-            <Sparkles size={14} />Ask the evidence
+            <Glyph name="ask" size={16} />Ask the evidence
           </button>
         </header>
         <main className="flex-1 overflow-auto px-4 py-6 lg:px-8">{children}</main>

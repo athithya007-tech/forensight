@@ -54,9 +54,14 @@ export default function Collect() {
 
   const state = useMemo(() => {
     const mods: Record<string, { status: string; message?: string; files: number }> = {};
-    let pct = 0, apct = 0, done = false, analyzed = false;
+    let pct = 0, apct = 0, done = false, analyzed = false, failure: string | null = null;
     for (const e of evs) {
-      if (e.module === "collect") { if (e.pct != null) pct = e.pct; if (e.status === "complete") done = true; continue; }
+      if (e.module === "collect") {
+        if (e.pct != null) pct = e.pct;
+        if (e.status === "complete") done = true;
+        if (e.status === "failed") failure = e.message ?? "Collection stopped";
+        continue;
+      }
       if (e.module.startsWith("analyze:")) { if (e.pct != null) apct = e.pct; if (e.status === "complete") analyzed = true; continue; }
       const m = (mods[e.module] ??= { status: "pending", files: 0 });
       if (e.status === "file") { m.files++; if (m.status === "pending") m.status = "running"; }
@@ -64,7 +69,11 @@ export default function Collect() {
       if (e.pct != null && e.status !== "file") pct = Math.max(pct, e.pct);
     }
     if (done) Object.values(mods).forEach((m) => { if (m.status === "running" || m.status === "pending") m.status = "done"; });
-    return { mods, pct: done ? 100 : pct, done, apct, analyzed };
+    // a module that only reported files (baseline, snapshot) is finished once the next module starts
+    const order = Object.keys(mods);
+    order.forEach((k, i) => { if (mods[k].status === "running" && mods[k].files && i < order.length - 1) mods[k].status = "done"; });
+    if (failure) Object.values(mods).forEach((m) => { if (m.status === "running" || m.status === "pending") m.status = "failed"; });
+    return { mods, pct: done ? 100 : pct, done, apct, analyzed, failure };
   }, [evs]);
   const files = evs.filter((e) => e.status === "file");
   const modules = ORDER.filter((m) => state.mods[m]).concat(Object.keys(state.mods).filter((m) => !ORDER.includes(m)));
@@ -78,6 +87,12 @@ export default function Collect() {
           {!evs.length && <Button onClick={() => startCollect(id, "quick")} title="Collect from the machine running ForenSight (lab use)"><Play size={14} />Collect this machine (quick)</Button>}
           {state.analyzed && <Link to={`/cases/${id}/story`}><Button variant="primary"><Play size={14} />Watch the attack story</Button></Link>}
         </>} />
+      {state.failure && (
+        <div role="alert" className="mb-4 rounded-lg border border-critical/40 bg-critical/5 px-4 py-3 text-sm">
+          <div className="font-semibold text-ink">Collection stopped: {state.failure}</div>
+          <div className="text-ink-2 mt-0.5">Evidence written so far is hashed and kept. The full error is in this case's audit.log.</div>
+        </div>
+      )}
       <div className="grid lg:grid-cols-3 gap-4">
         <Card title="Modules">
           {!modules.length ? <div className="text-ink-2 text-sm">Waiting for the collector… Start one with <Mono>forensight collect --case {id}</Mono> or run the demo from the case list.</div> : (
@@ -89,14 +104,14 @@ export default function Collect() {
         <Card bodyClass="flex flex-col items-start justify-center gap-4 py-8">
           <ModuleScale modules={modules} states={Object.fromEntries(modules.map((m) => [m, state.mods[m].status]))}
             pct={state.done && state.apct ? state.apct : state.pct}
-            label={state.analyzed ? "Analysis complete" : state.done ? (state.apct ? "Analyzing the evidence" : "Collection complete") : evs.length ? "Collecting in order of volatility" : "Waiting for a collector"} />
+            label={state.failure ? "Collection stopped" : state.analyzed ? "Analysis complete" : state.done ? (state.apct ? "Analyzing the evidence" : "Collection complete") : evs.length ? "Collecting in order of volatility" : "Waiting for a collector"} />
           <div className="text-sm text-ink-2 w-full">{files.length} artifacts hashed into the custody chain</div>
           {state.analyzed && s.data && <div className="w-full font-serif text-lg">Verdict: <b>{s.data.verdict}</b>, score {s.data.score} of 100.</div>}
         </Card>
         <Card title="Hash stream" bodyClass="p-0">
           <div ref={stream} className="h-[380px] overflow-auto p-3 font-mono text-xs space-y-1">
             {files.map((f, i) => (
-              <div key={i} className="rise"><span className="text-ink">{f.file?.replace(/^raw\//, "")}</span> <span className="text-ink-2">→</span> <span className="text-ok">{f.sha256?.slice(0, 24)}…</span></div>
+              <div key={i} className="rise"><span className="text-ink">{f.file?.replace(/^raw\//, "")}</span> <span className="text-ink-2">→</span> <span className={f.file?.startsWith("quarantined:") ? "text-high" : "text-ok"}>{f.sha256?.slice(0, 24)}…</span></div>
             ))}
             {!files.length && <div className="text-ink-2">No files yet.</div>}
           </div>

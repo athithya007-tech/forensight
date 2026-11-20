@@ -109,3 +109,30 @@ def test_linux_ssh_scenario(demo_case):
     s = run(d)
     assert {"T1110", "T1136.001", "T1059.004", "T1053.003", "T1070.003"} <= set(s["techniques"])
     assert evaluate(d)["steps_detected"] == 4
+
+
+@pytest.mark.parametrize("mode", ["hash", "blocked"])
+def test_demo_survives_antivirus_quarantine(demo_case, monkeypatch, mode):
+    """Windows Defender quarantines the EICAR stand-in. The demo must still finish, keep custody intact,
+    and detect step 4 through hash reputation (regression: Files/Baseline spun forever on Windows)."""
+    from pathlib import Path
+    from demo.generator import EICAR
+    if mode == "hash":
+        monkeypatch.setenv("FORENSIGHT_DEMO_EICAR", "hash")
+    else:
+        monkeypatch.setenv("FORENSIGHT_DEMO_EICAR", "write")
+        real = Path.write_bytes
+        def blocked(self, data):
+            if data == EICAR:
+                raise PermissionError(13, "Operation did not complete successfully because the file contains a virus")
+            return real(self, data)
+        monkeypatch.setattr(Path, "write_bytes", blocked)
+    d = demo_case(steps=[4, 7])
+    case = json.loads((d / "case.json").read_text())
+    assert case["status"] == "analyzed" and case["collection"]["modules"]["files"] == "ok"
+    idx = json.loads((d / "raw/artifacts/files_index.json").read_text())
+    assert idx[0]["quarantined"] and idx[0]["copy"] is None
+    assert "T1105" in techniques(d) and "T1071" in techniques(d)
+    assert verify(d)["ok"]
+    events = [json.loads(l) for l in (d / "progress.jsonl").read_text().splitlines()]
+    assert {"baseline", "files"} <= {e["module"] for e in events if e["status"] == "done"}

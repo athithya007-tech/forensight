@@ -30,9 +30,10 @@ def scan(loader, intel, log) -> int:
     rules = compile_rules(log)
     out = []
     for item in index:
-        copy = loader.work / Path(item["copy"]).relative_to("raw")
-        ref = item["copy"]
-        if rules is not None and copy.exists():
+        # a file the antivirus quarantined is known only by its hash: no YARA, but hash reputation still runs
+        copy = loader.work / Path(item["copy"]).relative_to("raw") if item.get("copy") else None
+        ref = item["copy"] or f"raw/artifacts/files_index.json#{item['original_path']}"
+        if rules is not None and copy is not None and copy.exists():
             try:
                 for m in rules.match(str(copy), timeout=30):
                     f = {"rule": m.rule, "namespace": m.namespace, "tags": list(m.tags), "path": item["original_path"],

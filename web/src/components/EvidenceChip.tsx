@@ -2,6 +2,7 @@ import { FileSearch, X } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useEvidenceItem } from "../api/client";
 import { useUi } from "../stores/ui";
+import { Glyph } from "./Glyph";
 import { SeverityBadge } from "./SeverityBadge";
 import { Loading, Mono, cx } from "./ui";
 
@@ -39,7 +40,7 @@ export function EvidenceDrawer() {
       <aside role="dialog" aria-label="Evidence" className="relative w-full max-w-xl h-full bg-sheet border-l border-rule shadow-lift flex flex-col rise" onClick={(e) => e.stopPropagation()}>
         <header className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-rule">
           <div>
-            <div className="h-display text-xl flex items-center gap-2"><FileSearch size={18} className="text-tape" />Exhibit</div>
+            <div className="h-display text-xl flex items-center gap-2"><Glyph name="evidence-bag" size={20} className="text-tape" />Exhibit</div>
             <Mono className="text-ink-2">{ref}</Mono>
           </div>
           <button onClick={close} className="text-ink-2 hover:text-ink p-1" aria-label="Close evidence"><X size={18} /></button>

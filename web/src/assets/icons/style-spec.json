@@ -1,0 +1,24 @@
+{
+  "name": "forensight-evidence-room-icons",
+  "preset": "clean (icon-set-generator), tuned",
+  "grid": 24, "strokeWidth": 1.5, "strokeLinecap": "round", "strokeLinejoin": "round", "cornerRadius": 1.5, "padding": 2,
+  "colour": "currentColor only; one optional filled region per icon marks the item of interest",
+  "story": "Every symbol is an object from the investigator's evidence room, never a generic UI metaphor.",
+  "icons": {
+    "case-file": "Summary: the case folder, everything known so far",
+    "replay": "Attack story: play the events along the forensic scale",
+    "timeline": "Timeline: the photo scale with events marked above it",
+    "string-board": "Attack graph: pins and string on the investigator's board",
+    "exhibit-lens": "Findings: an exhibit under the lens",
+    "attack-map": "ATT&CK map: the matrix with the detected cell filled in",
+    "process-tree": "Processes: parent and child processes",
+    "host-links": "Network: the host and the endpoints it reached",
+    "baseline-diff": "Baseline diff: the clean baseline (dashed) under the incident sheet",
+    "evidence-bag": "Evidence: a sealed bag with its exhibit label",
+    "signed-report": "Report: the document with its signature seal",
+    "collector": "Live collection: the USB collector, modules in order",
+    "ask": "Ask the evidence: a question that looks only at the evidence",
+    "open-case": "New case: a case file being opened",
+    "daylight": "Light theme", "night-shift": "Night-shift theme"
+  }
+}

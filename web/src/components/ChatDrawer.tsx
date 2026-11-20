@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { ChatMsg, Citation } from "../api/types";
 import { useUi } from "../stores/ui";
+import { Glyph } from "./Glyph";
 import { EvidenceChip } from "./EvidenceChip";
 import { cx } from "./ui";
 
@@ -60,7 +61,7 @@ export function ChatDrawer({ caseId }: { caseId: string }) {
     <aside role="dialog" aria-label="Ask the evidence" className="fixed right-0 top-0 h-full w-full max-w-md z-40 bg-sheet border-l border-rule shadow-lift flex flex-col rise">
       <header className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-rule">
         <div>
-          <div className="h-display text-xl flex items-center gap-2"><Sparkles size={17} className="text-tape" />Ask the evidence</div>
+          <div className="h-display text-xl flex items-center gap-2"><Glyph name="ask" size={20} className="text-tape" />Ask the evidence</div>
           <div className="text-xs text-ink-2 mt-0.5">{model ? `Local model ${model} via Ollama · nothing leaves this machine` : "No local model running · answers are direct evidence summaries"}</div>
         </div>
         <button onClick={() => setChat(false)} className="text-ink-2 hover:text-ink p-1" aria-label="Close chat"><X size={18} /></button>

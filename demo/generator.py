@@ -333,9 +333,19 @@ def generate(root: Path | None = None, steps: list[int] | None = None, name: str
         if delay:
             time.sleep(delay)
 
+    results: dict[str, str] = {}
+
     def mod(name, pct, fn):
+        """One failing module never stops the collection (PRD reliability NFR), demo included."""
         ctx.emit(name, "running", pct=pct)
-        fn()
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001
+            results[name] = f"failed: {e}"
+            ctx.log(name, f"module failed: {e}", "ERROR")
+            ctx.emit(name, "failed", pct=pct + 8, message=str(e)[:200])
+            return
+        results[name] = "ok"
         ctx.emit(name, "done", pct=pct + 8)
         ctx.log(name, "module finished (demo data)")
 
@@ -414,16 +424,40 @@ def generate(root: Path | None = None, steps: list[int] | None = None, name: str
         ctx.write_json("programs", "raw/live/programs.json", [{"name": k, **v} for k, v in snap["items"]["programs"].items()]); pause()
 
     def files():
+        """Copy the dropped files. The EICAR stand-in is the test string every antivirus quarantines on sight:
+        on Windows (Defender) it is recorded by hash only unless FORENSIGHT_DEMO_EICAR=write; anywhere a write
+        is blocked or the file vanishes, it is recorded as quarantined instead of crashing the collection."""
         index = []
+        mode = os.environ.get("FORENSIGHT_DEMO_EICAR", "hash" if os.name == "nt" else "write")
         for i, f in enumerate(state["files"]):
+            sha = hashlib.sha256(f["content"]).hexdigest()
             p = case_dir / f"raw/artifacts/files/{i:04d}_{f['name']}"
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_bytes(f["content"])
-            ts = f["mtime"].timestamp()
-            os.utime(p, (ts, ts))
-            e = ctx.register("files", p)
-            index.append({"original_path": f["original_path"], "copy": e["path"], "sha256": e["sha256"], "size": e["size"],
-                          "mtime": iso(f["mtime"])})
+            is_test_malware = f["content"] == EICAR
+            written = False
+            if not (is_test_malware and mode == "hash"):
+                try:
+                    p.parent.mkdir(parents=True, exist_ok=True)
+                    p.write_bytes(f["content"])
+                    ts = f["mtime"].timestamp()
+                    os.utime(p, (ts, ts))
+                    written = p.exists() and p.read_bytes() == f["content"]
+                except OSError as e:
+                    ctx.log("files", f"could not write {p.name}: {e}", "WARN")
+                if not written and p.exists():
+                    try:
+                        p.unlink()
+                    except OSError:
+                        pass
+            if written:
+                e = ctx.register("files", p)
+                index.append({"original_path": f["original_path"], "copy": e["path"], "sha256": e["sha256"], "size": e["size"],
+                              "mtime": iso(f["mtime"])})
+            else:
+                why = "recorded by hash only (antivirus would quarantine the EICAR test file)" if mode == "hash" else "blocked or removed by antivirus"
+                ctx.log("files", f"{f['original_path']}: {why}; sha256={sha}", "WARN")
+                ctx.emit("files", "file", file=f"quarantined: {f['original_path']}", sha256=sha)
+                index.append({"original_path": f["original_path"], "copy": None, "sha256": sha, "size": len(f["content"]),
+                              "mtime": iso(f["mtime"]), "quarantined": True, "note": why})
             pause()
         ctx.write_json("files", "raw/artifacts/files_index.json", index)
 
@@ -431,18 +465,22 @@ def generate(root: Path | None = None, steps: list[int] | None = None, name: str
         bdir = case_dir / "raw/baseline"
         bdir.mkdir(parents=True, exist_ok=True)
         base = {"snapshot": "baseline", "taken_at": iso(t0 - timedelta(days=1)), **_snapshot(None)}
+        ctx.emit("baseline", "running", pct=0)
         ctx.write_json("baseline", "raw/baseline/snapshot.json", base)
+        ctx.emit("baseline", "done", pct=0)
     plan = [("memory", memory), ("network", network), ("processes", processes), ("users", users), ("services", services),
             ("tasks", tasks), ("logs", logs), ("persistence", persistence), ("programs", programs), ("files", files)]
     for i, (n, fn) in enumerate(plan):
         mod(n, 100 * i / len(plan), fn)
+    ctx.emit("snapshot", "running", pct=98)
     ctx.write_json("snapshot", "raw/live/snapshot.json", {"snapshot": "incident", "taken_at": iso(collected), **snap})
+    ctx.emit("snapshot", "done", pct=99)
     sign_manifest(case_dir)
     (case_dir / "lab_truth.json").write_text(json.dumps({"steps": steps, "attack_start": iso(t0), "truth": b.truth,
                                                          "step_names": {k: v[0] for k, v in STEPS.items()}}, indent=1))
     update_case(case_dir, status="collected", collected_at=iso(collected), collection={
         "profile": "demo", "artifacts": ctx.count, "bytes": ctx.bytes, "seconds": 0,
-        "modules": {n: "ok" for n, _ in plan}})
+        "modules": results})
     ctx.emit("collect", "complete", pct=100, message=f"{ctx.count} artifacts hashed")
     ctx.log("collect", f"demo collection finished: {ctx.count} artifacts")
     return case_dir

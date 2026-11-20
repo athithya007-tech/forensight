@@ -103,10 +103,17 @@ def start_demo(body: CollectReq):
 
     def work():
         from analyzer.runner import run as run_analyze
-        d = generate(steps=steps, name="Lab-Breach-Live" if steps else "Clean-Baseline", delay=0.3,
-                     on_created=lambda cd: (created.update(d=cd), ready.set()))
-        if body.analyze:
-            run_analyze(d)
+        from core import progress
+        try:
+            d = generate(steps=steps, name="Lab-Breach-Live" if steps else "Clean-Baseline", delay=0.3,
+                         on_created=lambda cd: (created.update(d=cd), ready.set()))
+            if body.analyze:
+                run_analyze(d)
+        except Exception as e:
+            # surface the failure on the live page instead of leaving modules spinning forever
+            if "d" in created:
+                progress.emit(created["d"], "collect", "failed", message=f"{type(e).__name__}: {e}"[:300])
+            raise
         return d.name
 
     jid = _job(work)
