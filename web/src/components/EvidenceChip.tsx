@@ -5,6 +5,8 @@ import { useUi } from "../stores/ui";
 import { SeverityBadge } from "./SeverityBadge";
 import { Loading, Mono, cx } from "./ui";
 
+/** Exhibit tag: a punched evidence label carrying the source file and record anchor. */
+
 /** Clicking opens the EvidenceDrawer with the raw record and the file's SHA-256 (FR-29). */
 export function EvidenceChip({ evidenceRef, label, className }: { evidenceRef: string; label?: string; className?: string }) {
   const open = useUi((s) => s.openEvidence);
@@ -13,9 +15,11 @@ export function EvidenceChip({ evidenceRef, label, className }: { evidenceRef: s
   const tail = anchor ? `#${anchor.replace(/^EventRecordID=/, "rec ").slice(0, 22)}` : "";
   const short = label ?? `${base.replace("-Operational", "")}${tail}`;
   return (
-    <button onClick={(e) => { e.stopPropagation(); open(evidenceRef); }} title={evidenceRef}
-      className={cx("inline-flex items-center gap-1 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 font-mono text-[11px] text-accent hover:bg-accent/20 max-w-full", className)}>
-      <FileSearch size={11} className="shrink-0" /><span className="truncate">{short}</span>
+    <button onClick={(e) => { e.stopPropagation(); open(evidenceRef); }} title={`Open evidence: ${evidenceRef}`} aria-label={`Open evidence ${label ?? ""} ${evidenceRef}`.replace("  ", " ")}
+      className={cx("group inline-flex items-center gap-1.5 rounded-sm border border-rule bg-paper pl-1.5 pr-2 h-6 font-mono text-2xs text-ink",
+        "hover:border-ink hover:bg-sheet transition-colors duration-150 max-w-full", className)}>
+      <span className="w-1.5 h-1.5 rounded-full border border-ink-2 bg-sheet shrink-0 group-hover:border-tape" aria-hidden />
+      <span className="truncate">{short}</span>
     </button>
   );
 }
@@ -31,40 +35,42 @@ export function EvidenceDrawer() {
   try { if (excerpt && excerpt.trim().startsWith("{")) excerpt = JSON.stringify(JSON.parse(excerpt), null, 2); } catch { /* not json */ }
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={close}>
-      <div className="absolute inset-0 bg-black/50" />
-      <aside className="relative w-full max-w-xl h-full bg-surface border-l border-border shadow-2xl flex flex-col slide-in" onClick={(e) => e.stopPropagation()}>
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="font-semibold flex items-center gap-2"><FileSearch size={16} className="text-accent" />Evidence</div>
-          <button onClick={close} className="text-muted hover:text-text" aria-label="Close"><X size={18} /></button>
+      <div className="absolute inset-0 bg-ink/30" />
+      <aside role="dialog" aria-label="Evidence" className="relative w-full max-w-xl h-full bg-sheet border-l border-rule shadow-lift flex flex-col rise" onClick={(e) => e.stopPropagation()}>
+        <header className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-rule">
+          <div>
+            <div className="h-display text-xl flex items-center gap-2"><FileSearch size={18} className="text-tape" />Exhibit</div>
+            <Mono className="text-ink-2">{ref}</Mono>
+          </div>
+          <button onClick={close} className="text-ink-2 hover:text-ink p-1" aria-label="Close evidence"><X size={18} /></button>
         </header>
-        <div className="p-4 overflow-auto space-y-4 text-[13px]">
-          <div><div className="text-muted text-[12px] mb-1">Reference</div><Mono>{ref}</Mono></div>
+        <div className="px-6 py-5 overflow-auto space-y-5 text-sm">
           {q.isLoading && <Loading />}
           {d && (
             <>
-              <div className="rounded-md border border-border p-3 space-y-1.5">
-                <div className="flex justify-between gap-2"><span className="text-muted">File</span><Mono>{d.path}</Mono></div>
+              <dl className="grid grid-cols-[7.5rem_1fr] gap-x-4 gap-y-2 border-y border-rule py-3">
+                <dt className="label">File</dt><dd><Mono>{d.path}</Mono></dd>
                 {d.manifest ? (
                   <>
-                    <div className="flex justify-between gap-2"><span className="text-muted shrink-0">SHA-256</span><Mono className="text-ok">{d.manifest.sha256}</Mono></div>
-                    <div className="flex justify-between"><span className="text-muted">Collected</span><Mono>{d.manifest.collected_at}</Mono></div>
-                    <div className="flex justify-between"><span className="text-muted">Manifest entry</span><Mono>#{d.manifest.seq} · {d.manifest.module} · {d.manifest.collector}</Mono></div>
+                    <dt className="label">SHA-256</dt><dd><Mono className="text-ok">{d.manifest.sha256}</Mono></dd>
+                    <dt className="label">Collected</dt><dd><Mono>{d.manifest.collected_at}</Mono></dd>
+                    <dt className="label">Custody entry</dt><dd><Mono>#{d.manifest.seq} · {d.manifest.module} · {d.manifest.collector}</Mono></dd>
                   </>
                 ) : (
-                  <div className="text-muted">{d.is_original_evidence ? "Not in manifest" : "Derived analysis output (Volatility); the memory image is the hashed original"}</div>
+                  <><dt className="label">Custody</dt><dd className="text-ink-2">{d.is_original_evidence ? "Not in the manifest" : "Derived analysis output (Volatility). The memory image is the hashed original."}</dd></>
                 )}
-              </div>
+              </dl>
               {d.event && (
                 <div>
-                  <div className="flex items-center gap-2 mb-1"><SeverityBadge severity={d.event.severity} /><span className="font-medium">{d.event.event_type}</span>
-                    <Mono className="text-muted">{d.event.attck_id}</Mono></div>
-                  <div>{d.event.description}</div>
-                  <div className="text-muted text-[12px] mt-1">{d.event.timestamp_utc} UTC{d.event.original_tz && d.event.original_tz !== "UTC" ? ` (original ${d.event.original_ts} ${d.event.original_tz})` : ""}</div>
+                  <div className="flex items-center gap-3 mb-1.5"><SeverityBadge severity={d.event.severity} /><span className="text-xs text-ink-2">{d.event.event_type.replace(/_/g, " ")}</span>
+                    <Mono className="text-ink-2">{d.event.attck_id}</Mono></div>
+                  <div className="text-base text-ink break-words">{d.event.description}</div>
+                  <div className="text-ink-2 text-xs mt-1 font-mono">{d.event.timestamp_utc} UTC{d.event.original_tz && d.event.original_tz !== "UTC" ? ` (original ${d.event.original_ts} ${d.event.original_tz})` : ""}</div>
                 </div>
               )}
               <div>
-                <div className="text-muted text-[12px] mb-1">Raw record</div>
-                <pre className="bg-bg border border-border rounded-md p-3 font-mono text-[11.5px] whitespace-pre-wrap break-all max-h-[50vh] overflow-auto">
+                <div className="label mb-1.5">Raw record, as collected</div>
+                <pre className="bg-well border border-rule rounded p-3 font-mono text-[11.5px] leading-relaxed text-ink whitespace-pre-wrap break-all max-h-[50vh] overflow-auto">
                   {excerpt ?? JSON.stringify(d.event?.raw_json ?? {}, null, 2)}
                 </pre>
               </div>

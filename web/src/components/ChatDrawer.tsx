@@ -57,50 +57,50 @@ export function ChatDrawer({ caseId }: { caseId: string }) {
 
   if (!open) return null;
   return (
-    <aside className="fixed right-0 top-0 h-full w-full max-w-md z-40 bg-surface border-l border-border shadow-2xl flex flex-col slide-in">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border">
+    <aside role="dialog" aria-label="Ask the evidence" className="fixed right-0 top-0 h-full w-full max-w-md z-40 bg-sheet border-l border-rule shadow-lift flex flex-col rise">
+      <header className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-rule">
         <div>
-          <div className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-accent" />Ask the evidence</div>
-          <div className="text-[11.5px] text-muted">{model ? `Local model ${model} via Ollama · nothing leaves this machine` : "No local model running · answers are direct evidence summaries"}</div>
+          <div className="h-display text-xl flex items-center gap-2"><Sparkles size={17} className="text-tape" />Ask the evidence</div>
+          <div className="text-xs text-ink-2 mt-0.5">{model ? `Local model ${model} via Ollama · nothing leaves this machine` : "No local model running · answers are direct evidence summaries"}</div>
         </div>
-        <button onClick={() => setChat(false)} className="text-muted hover:text-text" aria-label="Close chat"><X size={18} /></button>
+        <button onClick={() => setChat(false)} className="text-ink-2 hover:text-ink p-1" aria-label="Close chat"><X size={18} /></button>
       </header>
-      <div className="flex-1 overflow-auto p-4 space-y-4">
+      <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
         {!msgs.length && (
           <div className="space-y-2">
-            <p className="text-muted text-[13px]">Answers use only this case's timeline and findings. Every claim links to its evidence.</p>
+            <p className="text-ink-2 text-sm">Answers come only from this case's timeline and findings. Every claim links to the exhibit it rests on.</p>
             {suggested.map((s) => (
-              <button key={s} onClick={() => ask(s)} className="block w-full text-left rounded-md border border-border px-3 py-2 text-[13px] hover:border-accent hover:text-accent">{s}</button>
+              <button key={s} onClick={() => ask(s)} className="block w-full text-left rounded border border-rule bg-paper px-3 py-2 text-sm font-serif text-ink hover:border-ink transition-colors duration-150">{s}</button>
             ))}
           </div>
         )}
         {msgs.map((m, i) => <Message key={i} m={m} />)}
         <div ref={end} />
       </div>
-      <form className="p-3 border-t border-border flex gap-2" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
+      <form className="p-4 border-t border-rule flex gap-2" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Which accounts did the attacker use?" disabled={busy}
-          className="flex-1 bg-bg border border-border rounded-md px-3 py-2 text-[13px] focus:outline-none focus:border-accent" />
-        <button type="submit" disabled={busy || !q.trim()} className="rounded-md bg-accent text-[#0B0F17] px-3 disabled:opacity-40" aria-label="Send"><Send size={16} /></button>
+          aria-label="Question" className="field flex-1 h-9" />
+        <button type="submit" disabled={busy || !q.trim()} className="rounded bg-ink text-paper w-9 h-9 grid place-items-center disabled:opacity-40 hover:bg-tape transition-colors" aria-label="Send question"><Send size={15} /></button>
       </form>
     </aside>
   );
 }
 
 function Message({ m }: { m: ChatMsg }) {
-  if (m.role === "user") return <div className="ml-10 rounded-lg bg-accent/15 border border-accent/30 px-3 py-2 text-[13px]">{m.content}</div>;
+  if (m.role === "user") return <div className="ml-10 font-serif text-base text-ink border-l-0 pl-0"><span className="label block mb-0.5">You asked</span>{m.content}</div>;
   const byId = new Map<number, Citation>((m.citations || []).map((c) => [c.id, c]));
   const parts = m.content.split(/(\[E\d+\])/g);
   return (
     <div className="flex gap-2">
-      <Bot size={18} className="text-accent shrink-0 mt-0.5" />
-      <div className="min-w-0 flex-1 text-[13px] leading-relaxed">
-        {m.pending && !m.content && <span className="text-muted animate-pulse">Searching the evidence…</span>}
+      <Bot size={17} className="text-ink-2 shrink-0 mt-0.5" />
+      <div className="min-w-0 flex-1 text-sm leading-relaxed">
+        {m.pending && !m.content && <span className="text-ink-2 animate-pulse">Searching the evidence…</span>}
         <div className="whitespace-pre-wrap">
           {parts.map((p, i) => {
             const mm = p.match(/^\[E(\d+)\]$/);
             if (!mm) return <span key={i}>{p}</span>;
             const c = byId.get(+mm[1]);
-            return c ? <EvidenceChip key={i} evidenceRef={c.evidence_ref} label={`E${c.id}`} className="mx-0.5 align-middle" /> : <span key={i} className="text-muted">{p}</span>;
+            return c ? <EvidenceChip key={i} evidenceRef={c.evidence_ref} label={`E${c.id}`} className="mx-0.5 align-middle" /> : <span key={i} className="text-ink-2">{p}</span>;
           })}
         </div>
         {!m.pending && m.citations?.length > 0 && (

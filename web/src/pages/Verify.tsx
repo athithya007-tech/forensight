@@ -17,17 +17,17 @@ export default function VerifyPage() {
       <ThemeSync />
       <div className="mb-8"><Brand /></div>
       {q.isLoading ? <Loading label="Checking signatures…" /> : q.error ? <ErrorState error={q.error} /> : (
-        <div className="w-full max-w-xl bg-surface border border-border rounded-xl p-8 text-center space-y-4">
+        <div className="w-full max-w-xl bg-sheet border border-rule rounded-xl p-8 text-center space-y-4">
           {ok ? <ShieldCheck size={72} className="mx-auto text-ok" /> : <ShieldX size={72} className="mx-auto text-critical" />}
           <div className={`text-3xl font-extrabold ${ok ? "text-ok" : "text-critical"}`}>{d.report_signature?.valid ? "Signature valid" : "Signature invalid"}</div>
-          <div className="text-muted">{d.report_signature?.reason}</div>
-          <div className="text-left text-[13px] space-y-1.5 border-t border-border pt-4">
-            <div className="flex justify-between"><span className="text-muted">Case</span><Mono>{d.case_id} · {d.case_name}</Mono></div>
-            <div className="flex justify-between"><span className="text-muted">Host</span><span>{d.host}</span></div>
-            <div className="flex justify-between items-center"><span className="text-muted">Verdict</span><VerdictBadge verdict={d.verdict} /></div>
-            <div className="flex justify-between gap-3"><span className="text-muted shrink-0">Report SHA-256</span><Mono>{d.report_signature?.sha256}</Mono></div>
-            <div className="flex justify-between"><span className="text-muted">Signing key</span><Mono>{d.key_fingerprint}</Mono></div>
-            <div className="flex justify-between"><span className="text-muted">Evidence chain</span>
+          <div className="text-ink-2">{d.report_signature?.reason}</div>
+          <div className="text-left text-sm space-y-1.5 border-t border-rule pt-4">
+            <div className="flex justify-between"><span className="text-ink-2">Case</span><Mono>{d.case_id} · {d.case_name}</Mono></div>
+            <div className="flex justify-between"><span className="text-ink-2">Host</span><span>{d.host}</span></div>
+            <div className="flex justify-between items-center"><span className="text-ink-2">Verdict</span><VerdictBadge verdict={d.verdict} /></div>
+            <div className="flex justify-between gap-3"><span className="text-ink-2 shrink-0">Report SHA-256</span><Mono>{d.report_signature?.sha256}</Mono></div>
+            <div className="flex justify-between"><span className="text-ink-2">Signing key</span><Mono>{d.key_fingerprint}</Mono></div>
+            <div className="flex justify-between"><span className="text-ink-2">Evidence chain</span>
               <span className={d.manifest.ok ? "text-ok" : "text-critical"}>{d.manifest.ok ? `✔ ${d.manifest.total} artifacts intact` : `✘ ${d.manifest.mismatches} mismatches`}</span></div>
           </div>
         </div>

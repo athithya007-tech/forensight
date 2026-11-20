@@ -29,17 +29,18 @@ export function DataTable<T>({ columns, rows, searchText, onRowClick, rowClass, 
     <div className="flex flex-col gap-2 min-w-0">
       {searchText && (
         <label className="relative max-w-xs">
-          <Search size={14} className="absolute left-2.5 top-2.5 text-muted" />
-          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Search…"
-            className="w-full bg-bg border border-border rounded-md pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:border-accent" />
+          <Search size={14} className="absolute left-2.5 top-2.5 text-ink-2" />
+          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Filter rows" aria-label="Filter rows"
+            className="field w-full pl-8" />
         </label>
       )}
-      <div className="overflow-auto border border-border rounded-lg">
-        <table className="w-full text-[13px]">
-          <thead className="bg-surface2/60 text-muted text-[11.5px] uppercase tracking-wide sticky top-0">
+      <div className="overflow-auto border border-rule rounded-lg bg-sheet">
+        <table className="w-full text-sm">
+          <thead className="bg-sheet text-ink-2 text-xs sticky top-0 z-[1] border-b border-ink/70">
             <tr>
               {columns.map((c) => (
-                <th key={c.key} style={{ width: c.width }} className={cx("text-left font-semibold px-3 py-2 whitespace-nowrap", c.sort && "cursor-pointer select-none hover:text-text")}
+                <th key={c.key} style={{ width: c.width }} aria-sort={sort?.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : undefined}
+                  className={cx("text-left font-medium px-3 py-2.5 whitespace-nowrap", c.sort && "cursor-pointer select-none hover:text-ink")}
                   onClick={() => c.sort && setSort((s) => (s?.key === c.key ? { key: c.key, dir: (s.dir * -1) as 1 | -1 } : { key: c.key, dir: 1 }))}>
                   <span className="inline-flex items-center gap-1">{c.header}
                     {sort?.key === c.key && (sort.dir === 1 ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}</span>
@@ -50,19 +51,19 @@ export function DataTable<T>({ columns, rows, searchText, onRowClick, rowClass, 
           <tbody>
             {view.map((r, i) => (
               <tr key={i} onClick={() => onRowClick?.(r)}
-                className={cx("border-t border-border/70 align-top", onRowClick && "cursor-pointer hover:bg-surface2/60", rowClass?.(r))}>
+                className={cx("border-t border-rule/70 align-top transition-colors duration-100", onRowClick && "cursor-pointer hover:bg-amber/[0.07]", rowClass?.(r))}>
                 {columns.map((c) => <td key={c.key} className={cx("px-3 py-2", c.className)}>{c.render ? c.render(r) : String((r as any)[c.key] ?? "")}</td>)}
               </tr>
             ))}
-            {!view.length && <tr><td colSpan={columns.length} className="px-3 py-10 text-center text-muted">{empty ?? "No rows"}</td></tr>}
+            {!view.length && <tr><td colSpan={columns.length} className="px-3 py-10 text-ink-2">{empty ?? "No rows match. Clear the filter to see everything."}</td></tr>}
           </tbody>
         </table>
       </div>
       {pages > 1 && (
-        <div className="flex items-center justify-end gap-2 text-[12px] text-muted">
+        <div className="flex items-center justify-end gap-2 text-xs text-ink-2 tnum">
           {filtered.length} rows · page {p + 1}/{pages}
-          <button className="p-1 hover:text-text disabled:opacity-30" disabled={p === 0} onClick={() => setPage(p - 1)} aria-label="Previous page"><ChevronLeft size={16} /></button>
-          <button className="p-1 hover:text-text disabled:opacity-30" disabled={p >= pages - 1} onClick={() => setPage(p + 1)} aria-label="Next page"><ChevronRight size={16} /></button>
+          <button className="p-1 hover:text-ink disabled:opacity-30" disabled={p === 0} onClick={() => setPage(p - 1)} aria-label="Previous page"><ChevronLeft size={16} /></button>
+          <button className="p-1 hover:text-ink disabled:opacity-30" disabled={p >= pages - 1} onClick={() => setPage(p + 1)} aria-label="Next page"><ChevronRight size={16} /></button>
         </div>
       )}
     </div>

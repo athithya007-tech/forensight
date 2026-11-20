@@ -11,12 +11,12 @@ export function ChainStatus({ result }: { result: any }) {
   return (
     <div className={`rounded-lg border p-4 flex items-start gap-3 ${ok ? "border-ok/50 bg-ok/10" : "border-critical/50 bg-critical/10"}`}>
       {ok ? <ShieldCheck className="text-ok shrink-0" /> : <XCircle className="text-critical shrink-0" />}
-      <div className="text-[13px]">
+      <div className="text-sm">
         <div className={`font-bold text-base ${ok ? "text-ok" : "text-critical"}`}>{ok ? "Evidence verified, untouched" : "VERIFICATION FAILED"}</div>
         <div>{result.total} artifacts re-hashed · {result.mismatches} mismatches · hash chain {result.chain_ok ? "intact" : `broken at entry ${result.first_break}`}
           {result.unlisted_files?.length ? ` · ${result.unlisted_files.length} files not in manifest` : ""}</div>
-        <div className="text-muted">Manifest signature: {result.manifest_signature?.reason}{result.report_signature ? ` · Report signature: ${result.report_signature.reason}` : ""}</div>
-        <div className="text-muted">Root hash <Mono>{result.root_hash}</Mono></div>
+        <div className="text-ink-2">Manifest signature: {result.manifest_signature?.reason}{result.report_signature ? ` · Report signature: ${result.report_signature.reason}` : ""}</div>
+        <div className="text-ink-2">Root hash <Mono>{result.root_hash}</Mono></div>
       </div>
     </div>
   );
@@ -38,15 +38,15 @@ export default function EvidencePage() {
       <DataTable<ManifestEntry> rows={q.data!.entries} searchText={(e) => `${e.path} ${e.sha256} ${e.module}`}
         rowClass={(e) => (status.get(e.path)?.status === "mismatch" ? "bg-critical/10" : "")}
         columns={[
-          { key: "s", header: "", width: "34px", render: (e) => { const s = status.get(e.path); return !s ? <span className="text-muted">·</span> : s.status === "ok" ? <CheckCircle2 size={16} className="text-ok" /> : <XCircle size={16} className="text-critical" />; } },
+          { key: "s", header: "", width: "34px", render: (e) => { const s = status.get(e.path); return !s ? <span className="sr-only">not verified yet</span> : s.status === "ok" ? <CheckCircle2 size={16} className="text-ok" /> : <XCircle size={16} className="text-critical" />; } },
           { key: "seq", header: "#", width: "44px", sort: (e) => e.seq, render: (e) => <Mono>{e.seq}</Mono> },
-          { key: "p", header: "Path", sort: (e) => e.path, render: (e) => <div><Mono>{e.path}</Mono>{status.get(e.path)?.problems?.length ? <div className="text-critical text-[12px]">{status.get(e.path).problems.join("; ")}</div> : null}</div> },
-          { key: "m", header: "Module", sort: (e) => e.module, render: (e) => <span className="text-[12px]">{e.module}</span> },
-          { key: "sz", header: "Size", sort: (e) => e.size, render: (e) => <span className="tabular-nums text-[12px]">{fmtBytes(e.size)}</span> },
-          { key: "h", header: "SHA-256", render: (e) => <Mono className="text-muted">{e.sha256}</Mono> },
-          { key: "c", header: "Chain", width: "130px", render: (e) => <span className="inline-flex items-center gap-1 text-[11px] text-muted"><Link2 size={11} /><Mono>{e.entry_hash.slice(0, 12)}…</Mono></span> },
+          { key: "p", header: "Path", sort: (e) => e.path, render: (e) => <div><Mono>{e.path}</Mono>{status.get(e.path)?.problems?.length ? <div className="text-critical text-xs">{status.get(e.path).problems.join("; ")}</div> : null}</div> },
+          { key: "m", header: "Module", sort: (e) => e.module, render: (e) => <span className="text-xs">{e.module}</span> },
+          { key: "sz", header: "Size", sort: (e) => e.size, render: (e) => <span className="tnum text-xs whitespace-nowrap">{fmtBytes(e.size)}</span> },
+          { key: "h", header: "SHA-256", render: (e) => <Mono className="text-ink-2">{e.sha256}</Mono> },
+          { key: "c", header: "Chain link", width: "120px", render: (e) => <span className="inline-flex items-center gap-1 text-2xs text-ink-2 whitespace-nowrap" title={`entry_hash ${e.entry_hash}`}><Link2 size={11} /><span className="font-mono">{e.entry_hash.slice(0, 10)}…</span></span> },
         ]} />
-      <Card title="Audit log (latest)"><pre className="font-mono text-[11.5px] text-muted max-h-72 overflow-auto whitespace-pre-wrap">{q.data!.audit.join("\n")}</pre></Card>
+      <Card title="Audit log (latest)"><pre className="font-mono text-xs text-ink-2 max-h-72 overflow-auto whitespace-pre-wrap">{q.data!.audit.join("\n")}</pre></Card>
     </div>
   );
 }

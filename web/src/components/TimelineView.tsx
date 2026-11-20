@@ -18,8 +18,8 @@ export function TimelineView({ events, currentId, onSelect, phases, height = 360
     if (!el.current) return;
     const t = new Timeline(el.current, items.current, {
       height, stack: true, zoomMin: 5_000, zoomMax: 1000 * 60 * 60 * 24 * 14, orientation: { axis: "top" },
-      margin: { item: { horizontal: 2, vertical: 4 } }, showCurrentTime: false, tooltip: { followMouse: true, overflowMethod: "cap" },
-      groupOrder: "content",
+      margin: { item: { horizontal: 4, vertical: 6 }, axis: 10 }, showCurrentTime: false, tooltip: { followMouse: true, overflowMethod: "cap" },
+      groupOrder: "content", verticalScroll: true,
     } as any);
     t.on("select", (p: any) => { const id = p.items?.[0]; if (typeof id === "number") onSel.current?.(id); });
     tl.current = t;
@@ -36,8 +36,8 @@ export function TimelineView({ events, currentId, onSelect, phases, height = 360
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
     items.current.add(events.map((e) => ({
       id: e.id, start: e.timestamp_utc, group: short(e.source), type: "box",
-      content: esc((e.attck_id ? `${e.attck_id} · ` : "") + (e.event_type.replace(/_/g, " "))),
-      title: `<b>${e.timestamp_utc.slice(11, 19)} UTC · ${e.severity}</b><br/>${esc(e.description.slice(0, 220))}`,
+      content: esc(e.event_type.replace(/_/g, " ") + (e.attck_id ? `  ${e.attck_id}` : "")),
+      title: `<span style="font-family:IBM Plex Mono,monospace;opacity:.75">${e.timestamp_utc.slice(11, 19)} UTC · ${e.severity}${e.attck_id ? " · " + e.attck_id : ""}</span><br/>${esc(e.description.slice(0, 220))}`,
       className: `sev-${e.severity}`,
     })));
     (phases ?? []).forEach((p) => items.current.add({ id: `phase-${p.index}`, start: p.start, end: new Date(new Date(p.end).getTime() + 20_000).toISOString(),

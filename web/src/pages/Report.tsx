@@ -11,8 +11,8 @@ export function DownloadButtons({ id, files }: { id: string; files: Record<strin
   return (
     <div className="flex flex-col gap-2">
       {FILES.filter(([f]) => files[f]).map(([f, label]) => (
-        <a key={f} href={`/api/cases/${id}/report/file/${f}`} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:border-accent text-[13px]">
-          <Download size={14} className="text-accent" /><span className="flex-1">{label}</span><Mono className="text-muted">{f}</Mono></a>
+        <a key={f} href={`/api/cases/${id}/report/file/${f}`} className="flex items-center gap-2 rounded-md border border-rule px-3 py-2 hover:border-ink text-sm">
+          <Download size={14} className="text-ink" /><span className="flex-1">{label}</span><Mono className="text-ink-2">{f}</Mono></a>
       ))}
     </div>
   );
@@ -40,14 +40,14 @@ export default function ReportPage() {
     <div className="space-y-4">
       <PageHeader title="Report" subtitle={q.data!.meta ? <>Generated {q.data!.meta.generated_at} · content hash <Mono>{q.data!.meta.content_hash.slice(0, 16)}</Mono>{q.data!.meta.ai ? " · includes AI summary" : ""}</> : "No report yet"}
         actions={<>
-          <label className="inline-flex items-center gap-1.5 text-[13px] text-muted" title="Needs Ollama running locally; labelled AI-generated"><input type="checkbox" checked={ai} onChange={(e) => setAi(e.target.checked)} className="accent-[#22D3EE]" />AI summary</label>
+          <label className="inline-flex items-center gap-1.5 text-sm text-ink-2" title="Needs Ollama running locally; labelled AI-generated"><input type="checkbox" checked={ai} onChange={(e) => setAi(e.target.checked)} className="accent-[rgb(var(--ink))]" />AI summary</label>
           <Button variant="primary" onClick={gen} disabled={busy}>{busy ? <Loader2 size={14} className="animate-spin" /> : has ? <RefreshCw size={14} /> : <FileText size={14} />}{has ? "Regenerate" : "Generate report"}</Button>
           <Link to={`/verify/${id}`} target="_blank"><Button><QrCode size={14} />Verify page</Button></Link>
         </>} />
       {err && <ErrorState error={err} />}
       <div className="grid lg:grid-cols-3 gap-4">
-        <Card title="Preview" className="lg:col-span-2" bodyClass="p-0">
-          {has ? <iframe key={v} title="Report preview" src={`/api/cases/${id}/report/pdf#view=FitH`} className="w-full h-[75vh] rounded-b-lg bg-white" />
+        <Card title="Preview" note="The HTML rendering of the signed PDF. Download the PDF for the signed copy." className="lg:col-span-2" bodyClass="!px-0 !pb-0">
+          {has ? <iframe key={v} title="Report preview" src={`/api/cases/${id}/report/file/report.html?inline=true`} className="w-full h-[75vh] rounded-b-lg bg-white border-t border-rule" />
             : <Empty title="No report generated" hint="Generate the signed PDF: executive summary, scope, timeline, findings, IOCs, ATT&CK map, recommendations, chain of custody." />}
         </Card>
         <Card title="Downloads"><DownloadButtons id={id} files={q.data!.files} /></Card>

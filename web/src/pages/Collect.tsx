@@ -8,20 +8,29 @@ import { Button, Card, Mono, PageHeader } from "../components/ui";
 
 const ORDER = ["memory", "network", "processes", "users", "services", "tasks", "logs", "browser", "persistence", "programs", "files"];
 
-function ProgressRing({ pct, label }: { pct: number; label: string }) {
-  const r = 70, c = 2 * Math.PI * r;
+/** Progress measured on the forensic scale: one segment per module, filled as each completes. */
+function ModuleScale({ modules, states, pct, label }: { modules: string[]; states: Record<string, string>; pct: number; label: string }) {
+  const fill = (st: string | undefined, i: number) => st === "done" ? (i % 2 ? "rgb(var(--ink-2))" : "rgb(var(--ink))")
+    : st === "running" ? "rgb(var(--amber))" : st === "failed" ? "rgb(var(--sev-critical))"
+    : st === "skipped" ? "repeating-linear-gradient(135deg, rgb(var(--rule)) 0 3px, rgb(var(--sheet)) 3px 6px)" : i % 2 ? "rgb(var(--sheet))" : "rgb(var(--well))";
   return (
-    <svg viewBox="0 0 180 180" className="w-56 h-56">
-      <circle cx="90" cy="90" r={r} stroke="rgb(var(--border))" strokeWidth="12" fill="none" />
-      <circle cx="90" cy="90" r={r} stroke="rgb(var(--accent))" strokeWidth="12" fill="none" strokeLinecap="round" strokeDasharray={c}
-        strokeDashoffset={c * (1 - pct / 100)} transform="rotate(-90 90 90)" style={{ transition: "stroke-dashoffset .4s" }} />
-      <text x="90" y="92" textAnchor="middle" fontSize="34" fontWeight="800" fill="rgb(var(--text))">{Math.round(pct)}%</text>
-      <text x="90" y="116" textAnchor="middle" fontSize="11" fill="rgb(var(--muted))">{label}</text>
-    </svg>
+    <div className="w-full">
+      <div className="flex items-baseline justify-between mb-3">
+        <span className="h-display text-5xl tnum">{Math.round(pct)}<span className="text-2xl text-ink-2">%</span></span>
+        <span className="text-sm text-ink-2">{label}</span>
+      </div>
+      <div className="flex h-6 border border-ink rounded-[2px] overflow-hidden" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+        {(modules.length ? modules : ["…"]).map((m, i) => (
+          <div key={m} title={`${m}: ${states[m] ?? "pending"}`} className="flex-1 border-r border-ink/50 last:border-r-0 transition-colors duration-300"
+            style={{ background: fill(states[m], i) }} />
+        ))}
+      </div>
+      <div className="flex justify-between mt-1.5 text-2xs text-ink-2"><span>RAM first</span><span>files last (RFC 3227 order of volatility)</span></div>
+    </div>
   );
 }
 
-/** Live collection (US-019, FR-40): module checklist, progress ring and SHA-256 hash stream over WebSocket. */
+/** Live collection (US-019, FR-40): module checklist, progress on the forensic scale and the SHA-256 hash stream over WebSocket. */
 export default function Collect() {
   const { id = "" } = useParams();
   const [evs, setEvs] = useState<ProgressEvent[]>([]);
@@ -60,34 +69,36 @@ export default function Collect() {
   const files = evs.filter((e) => e.status === "file");
   const modules = ORDER.filter((m) => state.mods[m]).concat(Object.keys(state.mods).filter((m) => !ORDER.includes(m)));
   const icon = (st: string) => st === "done" ? <CheckCircle2 size={16} className="text-ok" /> : st === "failed" ? <XCircle size={16} className="text-critical" />
-    : st === "skipped" ? <MinusCircle size={16} className="text-medium" /> : st === "running" ? <Loader2 size={16} className="text-accent animate-spin" /> : <Circle size={16} className="text-muted" />;
+    : st === "skipped" ? <MinusCircle size={16} className="text-ink-2" /> : st === "running" ? <Loader2 size={16} className="text-amber animate-spin" /> : <Circle size={16} className="text-rule" />;
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Live collection" subtitle={<>Order of volatility (RFC 3227) · WebSocket {conn} · every file hashed as it is written</>}
+      <PageHeader title="Live collection" subtitle={<>Modules run in order of volatility, and every file is hashed the moment it is written. Live link: {conn === "open" ? "connected" : conn}.</>}
         actions={<>
           {!evs.length && <Button onClick={() => startCollect(id, "quick")} title="Collect from the machine running ForenSight (lab use)"><Play size={14} />Collect this machine (quick)</Button>}
           {state.analyzed && <Link to={`/cases/${id}/story`}><Button variant="primary"><Play size={14} />Watch the attack story</Button></Link>}
         </>} />
       <div className="grid lg:grid-cols-3 gap-4">
         <Card title="Modules">
-          {!modules.length ? <div className="text-muted text-[13px]">Waiting for the collector… Start one with <Mono>forensight collect --case {id}</Mono> or run the demo from the case list.</div> : (
+          {!modules.length ? <div className="text-ink-2 text-sm">Waiting for the collector… Start one with <Mono>forensight collect --case {id}</Mono> or run the demo from the case list.</div> : (
             <ul className="space-y-1.5">{modules.map((m) => (
-              <li key={m} className="flex items-center gap-2 text-[13.5px]">{icon(state.mods[m].status)}<span className="flex-1 capitalize">{m}</span>
-                <span className="text-[12px] text-muted">{state.mods[m].files ? `${state.mods[m].files} files` : state.mods[m].message?.slice(0, 40) ?? ""}</span></li>))}</ul>
+              <li key={m} className="flex items-center gap-2 text-sm">{icon(state.mods[m].status)}<span className="flex-1 capitalize">{m}</span>
+                <span className="text-xs text-ink-2 truncate max-w-[55%] text-right" title={state.mods[m].message}>{state.mods[m].files ? `${state.mods[m].files} file${state.mods[m].files > 1 ? "s" : ""}` : state.mods[m].status === "skipped" ? "skipped" : ""}</span></li>))}</ul>
           )}
         </Card>
-        <Card bodyClass="flex flex-col items-center justify-center gap-3 py-8">
-          <ProgressRing pct={state.done && state.apct ? state.apct : state.pct} label={state.analyzed ? "analysis complete" : state.done ? (state.apct ? "analyzing…" : "collection complete") : "collecting"} />
-          <div className="text-[13px] text-muted">{files.length} artifacts hashed</div>
-          {state.analyzed && s.data && <div className="text-[14px]">Verdict: <b>{s.data.verdict}</b> · score {s.data.score}</div>}
+        <Card bodyClass="flex flex-col items-start justify-center gap-4 py-8">
+          <ModuleScale modules={modules} states={Object.fromEntries(modules.map((m) => [m, state.mods[m].status]))}
+            pct={state.done && state.apct ? state.apct : state.pct}
+            label={state.analyzed ? "Analysis complete" : state.done ? (state.apct ? "Analyzing the evidence" : "Collection complete") : evs.length ? "Collecting in order of volatility" : "Waiting for a collector"} />
+          <div className="text-sm text-ink-2 w-full">{files.length} artifacts hashed into the custody chain</div>
+          {state.analyzed && s.data && <div className="w-full font-serif text-lg">Verdict: <b>{s.data.verdict}</b>, score {s.data.score} of 100.</div>}
         </Card>
         <Card title="Hash stream" bodyClass="p-0">
-          <div ref={stream} className="h-[380px] overflow-auto p-3 font-mono text-[11.5px] space-y-1">
+          <div ref={stream} className="h-[380px] overflow-auto p-3 font-mono text-xs space-y-1">
             {files.map((f, i) => (
-              <div key={i} className="slide-in"><span className="text-text">{f.file?.replace(/^raw\//, "")}</span> <span className="text-muted">→</span> <span className="text-ok">{f.sha256?.slice(0, 24)}…</span></div>
+              <div key={i} className="rise"><span className="text-ink">{f.file?.replace(/^raw\//, "")}</span> <span className="text-ink-2">→</span> <span className="text-ok">{f.sha256?.slice(0, 24)}…</span></div>
             ))}
-            {!files.length && <div className="text-muted">No files yet.</div>}
+            {!files.length && <div className="text-ink-2">No files yet.</div>}
           </div>
         </Card>
       </div>

@@ -1,56 +1,123 @@
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource/newsreader/400.css";
+@import "@fontsource/newsreader/500.css";
+@import "@fontsource/newsreader/600.css";
+@import "@fontsource/newsreader/400-italic.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* PRD 15.7 design tokens (dark SOC theme by default) */
-:root, .dark {
-  --bg: 11 15 23;          /* #0B0F17 */
-  --surface: 18 24 38;     /* #121826 */
-  --surface2: 25 33 51;
-  --border: 31 41 55;      /* #1F2937 */
-  --text: 229 231 235;     /* #E5E7EB */
-  --muted: 156 163 175;    /* #9CA3AF */
-  --accent: 34 211 238;    /* #22D3EE */
-  color-scheme: dark;
-}
-.light {
-  --bg: 244 246 250;
-  --surface: 255 255 255;
-  --surface2: 241 245 249;
-  --border: 222 228 236;
-  --text: 15 23 42;
-  --muted: 82 96 117;
-  --accent: 8 145 178;
+/* ── Evidence Room ────────────────────────────────────────────────────────────
+   Light is the default: the demo runs on a projector in a lit room.
+   Severity hues are tuned for contrast on paper (critical = evidence-tape red). */
+:root, .light {
+  --paper: 243 240 233;      /* #F3F0E9 */
+  --sheet: 251 250 246;      /* #FBFAF6 */
+  --well: 236 232 223;       /* #ECE8DF */
+  --ink: 28 27 24;           /* #1C1B18 */
+  --ink-2: 95 89 78;         /* #5F594E  (6.1:1 on sheet) */
+  --rule: 217 211 197;       /* #D9D3C5 */
+  --rail: 30 33 31;          /* #1E211F */
+  --rail-2: 44 48 45;
+  --rail-ink: 236 232 222;
+  --tape: 194 40 29;         /* #C2281D evidence tape */
+  --amber: 214 150 20;       /* #D69614 */
+  --sev-critical: 179 38 30; /* #B3261E */
+  --sev-high: 201 91 12;     /* #C95B0C */
+  --sev-medium: 156 115 0;   /* #9C7300 */
+  --sev-low: 52 96 145;      /* #346091 */
+  --sev-info: 125 119 108;   /* #7D776C */
+  --ok: 38 120 74;           /* #26784A */
+  --shadow: 60 50 30;
   color-scheme: light;
 }
+/* Night shift: warm graphite, not SOC blue */
+.dark {
+  --paper: 22 22 20;
+  --sheet: 31 31 28;
+  --well: 40 40 36;
+  --ink: 236 232 222;
+  --ink-2: 172 165 150;
+  --rule: 62 61 55;
+  --rail: 14 14 13;
+  --rail-2: 30 30 27;
+  --rail-ink: 236 232 222;
+  --tape: 236 83 66;
+  --amber: 240 180 60;
+  --sev-critical: 239 90 75;
+  --sev-high: 240 140 60;
+  --sev-medium: 222 180 60;
+  --sev-low: 110 160 220;
+  --sev-info: 150 145 135;
+  --ok: 90 190 120;
+  --shadow: 0 0 0;
+  color-scheme: dark;
+}
+
 html, body, #root { height: 100%; }
-body { @apply bg-bg text-text font-sans antialiased; font-size: 14px; }
-::selection { background: rgb(var(--accent) / 0.3); }
-* { scrollbar-width: thin; scrollbar-color: rgb(var(--border)) transparent; }
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+  font-size: 0.9375rem;
+  font-feature-settings: "ss01", "cv11";
+}
+/* Browser surfaces carry the design too (craft floor) */
+::selection { background: rgb(var(--amber) / 0.35); color: rgb(var(--ink)); }
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--rule)) transparent; }
+:focus-visible { outline: 2px solid rgb(var(--amber)); outline-offset: 2px; border-radius: 2px; }
+input, select, textarea { caret-color: rgb(var(--tape)); }
+.tnum, table, .font-mono { font-variant-numeric: tabular-nums; }
+a { text-underline-offset: 3px; }
 
-@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgb(var(--accent) / .6) } 100% { box-shadow: 0 0 0 14px rgb(var(--accent) / 0) } }
-.pulse { animation: pulse-ring 1.2s ease-out infinite; }
-@keyframes slide-in { from { transform: translateY(6px); opacity: 0 } to { transform: none; opacity: 1 } }
-.slide-in { animation: slide-in .25s ease-out; }
+@layer components {
+  .h-display { @apply font-serif font-medium tracking-[-0.015em] text-ink; }
+  .field { @apply bg-sheet border border-rule rounded px-3 py-1.5 text-sm text-ink placeholder:text-ink-2/70 focus:outline-none focus:border-ink transition-colors duration-150; }
+  .label { @apply text-xs font-medium text-ink-2; }
+}
 
-/* vis-timeline dark overrides */
-.vis-timeline { border: 1px solid rgb(var(--border)) !important; border-radius: 8px; font-family: Inter, sans-serif; background: rgb(var(--surface)); }
-.vis-panel.vis-center, .vis-panel.vis-left, .vis-panel.vis-right, .vis-panel.vis-top, .vis-panel.vis-bottom { border-color: rgb(var(--border)) !important; }
-.vis-time-axis .vis-text { color: rgb(var(--muted)) !important; font-size: 11px; }
-.vis-time-axis .vis-grid.vis-minor { border-color: rgb(var(--border) / .6) !important; }
-.vis-time-axis .vis-grid.vis-major { border-color: rgb(var(--border)) !important; }
-.vis-labelset .vis-label { color: rgb(var(--muted)) !important; border-color: rgb(var(--border)) !important; font-size: 11px; }
-.vis-foreground .vis-group, .vis-background .vis-group { border-color: rgb(var(--border) / .5) !important; }
-.vis-item { border-radius: 6px !important; font-size: 11px; color: #0B0F17; border-width: 1px !important; }
-.vis-item.vis-point, .vis-item.vis-dot { background: transparent; }
-.vis-item .vis-item-content { padding: 2px 6px !important; }
-.vis-item.sev-Critical { background: #EF4444; border-color: #EF4444; color: #fff; }
-.vis-item.sev-High { background: #F97316; border-color: #F97316; }
-.vis-item.sev-Medium { background: #EAB308; border-color: #EAB308; }
-.vis-item.sev-Low { background: #3B82F6; border-color: #3B82F6; color: #fff; }
-.vis-item.sev-Info { background: rgb(var(--surface2)); border-color: rgb(var(--border)); color: rgb(var(--muted)); }
-.vis-item.vis-selected { box-shadow: 0 0 0 3px rgb(var(--accent)); z-index: 5; }
-.vis-item.current { box-shadow: 0 0 0 3px rgb(var(--accent)); animation: pulse-ring 1.2s ease-out infinite; z-index: 6; }
-.vis-item.vis-background.phase { background: rgb(var(--accent) / .07); border: none; }
-.vis-item.vis-background.phase .vis-item-content { color: rgb(var(--accent)); font-weight: 600; font-size: 10px; }
-.vis-current-time { background: rgb(var(--accent)); }
+/* motion conveys state only (Impeccable operate) */
+@keyframes rise { from { transform: translateY(4px); opacity: 0 } to { transform: none; opacity: 1 } }
+.rise { animation: rise 220ms cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes mark { 0% { box-shadow: 0 0 0 0 rgb(var(--amber) / .7) } 100% { box-shadow: 0 0 0 10px rgb(var(--amber) / 0) } }
+@keyframes shimmer { from { background-position: -200px 0 } to { background-position: 200px 0 } }
+.skeleton { background: linear-gradient(90deg, rgb(var(--well)) 0, rgb(var(--sheet)) 60px, rgb(var(--well)) 120px); background-size: 400px 100%; animation: shimmer 1.2s linear infinite; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ── vis-timeline, restyled as a measured strip ─────────────────────────────── */
+.vis-timeline { border: 1px solid rgb(var(--rule)) !important; border-radius: 6px; font-family: "Instrument Sans Variable", sans-serif; background: rgb(var(--sheet)); }
+.vis-panel.vis-center, .vis-panel.vis-left, .vis-panel.vis-right, .vis-panel.vis-top, .vis-panel.vis-bottom { border-color: rgb(var(--rule)) !important; }
+.vis-panel.vis-top { background: rgb(var(--sheet)); }
+.vis-time-axis .vis-text { color: rgb(var(--ink-2)) !important; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+.vis-time-axis .vis-text.vis-major { color: rgb(var(--ink)) !important; font-weight: 500; }
+.vis-time-axis .vis-grid.vis-minor { border-color: rgb(var(--rule) / .45) !important; }
+.vis-time-axis .vis-grid.vis-major { border-color: rgb(var(--rule)) !important; }
+.vis-labelset .vis-label { color: rgb(var(--ink-2)) !important; border-color: rgb(var(--rule) / .7) !important; font-size: 11.5px; }
+.vis-labelset .vis-label .vis-inner { padding: 4px 10px; }
+.vis-foreground .vis-group, .vis-background .vis-group { border-color: rgb(var(--rule) / .45) !important; }
+/* items: a severity swatch + ink label on paper, not a filled lozenge */
+.vis-item { border-radius: 3px !important; font-size: 11px; color: rgb(var(--ink)) !important; background-color: rgb(var(--sheet)) !important; border: 1px solid rgb(var(--rule)) !important;
+  border-left-width: 1px !important; transition: box-shadow 150ms; }
+.vis-item .vis-item-content { padding: 1px 7px 1px 16px !important; position: relative; }
+.vis-item .vis-item-content::before { content: ""; position: absolute; left: 6px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 1px; background: rgb(var(--sev-info)); }
+.vis-item.sev-Critical .vis-item-content::before { background: rgb(var(--sev-critical)); }
+.vis-item.sev-High .vis-item-content::before { background: rgb(var(--sev-high)); }
+.vis-item.sev-Medium .vis-item-content::before { background: rgb(var(--sev-medium)); }
+.vis-item.sev-Low .vis-item-content::before { background: rgb(var(--sev-low)); }
+.vis-item.sev-Critical { border-color: rgb(var(--sev-critical) / .55) !important; }
+.vis-item.sev-Info { color: rgb(var(--ink-2)) !important; background-color: transparent !important; border-style: dashed !important; }
+.vis-item.vis-line { border-color: rgb(var(--rule)) !important; }
+.vis-item.vis-dot { border-color: rgb(var(--ink-2)) !important; }
+.vis-item.vis-selected { box-shadow: 0 0 0 2px rgb(var(--ink)); z-index: 5; }
+.vis-item.vis-box.vis-selected, .vis-item.vis-selected { border-color: rgb(var(--ink)) !important; }
+.vis-item.current { box-shadow: 0 0 0 2px rgb(var(--amber)); animation: mark 1.2s ease-out infinite; background-color: rgb(var(--amber) / .18) !important; z-index: 6; }
+.vis-item.vis-background.phase { background-color: transparent !important; background-image: repeating-linear-gradient(90deg, rgb(var(--ink) / .035) 0 2px, transparent 2px 8px); border: none !important; }
+.vis-item.vis-background.phase .vis-item-content { color: rgb(var(--ink-2)); font-size: 10.5px; font-style: italic; font-family: Newsreader, serif; padding-left: 6px !important; }
+.vis-item.vis-background.phase .vis-item-content::before { display: none; }
+.vis-tooltip { background: rgb(var(--rail)) !important; color: rgb(var(--rail-ink)) !important; border: none !important; border-radius: 4px !important;
+  font-family: "Instrument Sans Variable", sans-serif !important; font-size: 12px !important; padding: 8px 10px !important; max-width: 340px; white-space: normal !important; box-shadow: 0 10px 30px -10px rgb(0 0 0 / .5) !important; }
+
+/* attack-graph groups: actors / execution / footprint */
+:root, .light { --grp-actor: 61 92 120; --grp-exec: 176 120 30; --grp-foot: 122 132 112; }
+.dark { --grp-actor: 120 160 200; --grp-exec: 220 160 70; --grp-foot: 150 160 140; }

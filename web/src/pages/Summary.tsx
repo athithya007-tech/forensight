@@ -1,94 +1,174 @@
-import { Clock, Cpu, Fingerprint, Monitor } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
-import { useSummary } from "../api/client";
-import { SEVERITIES } from "../api/types";
+import { ArrowRight } from "lucide-react";
+import { useMemo } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Line, LineChart, ReferenceDot, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { useEvents, useSummary } from "../api/client";
+import { SEVERITIES, type Severity } from "../api/types";
 import { EvidenceChip } from "../components/EvidenceChip";
-import { ScoreGauge } from "../components/ScoreGauge";
-import { SEV_COLOR, SeverityBadge, VerdictBadge } from "../components/SeverityBadge";
+import { ScoreScale, SEV_VAR, TimeScale, TimeScaleLabels } from "../components/ForensicScale";
+import { SeverityBadge, VERDICT_COLOR } from "../components/SeverityBadge";
 import { Card, Empty, ErrorState, Loading, Mono, fmtDateTime, fmtDuration, fmtTime } from "../components/ui";
+import { useReplay } from "../stores/replay";
+
+const HEADLINE: Record<string, (h: string) => string> = {
+  Compromised: (h) => `${h} was compromised.`,
+  Suspicious: (h) => `${h} shows suspicious activity.`,
+  Clean: (h) => `${h} looks clean.`,
+};
+
+/** Events per minute across the attack window: Tufte sparkline, range frame, accent on the peak only. */
+function ActivityRate({ times, start, end }: { times: number[]; start: number; end: number }) {
+  const data = useMemo(() => {
+    const m = 60_000, s0 = Math.floor(start / m) * m, n = Math.max(1, Math.ceil((end - s0) / m) + 1);
+    const bins = Array.from({ length: n }, (_, i) => ({ t: s0 + i * m, n: 0 }));
+    times.forEach((t) => { const i = Math.floor((t - s0) / m); if (bins[i]) bins[i].n++; });
+    return bins;
+  }, [times, start, end]);
+  const peak = data.reduce((a, b) => (b.n > a.n ? b : a), data[0]);
+  return (
+    <div className="flex items-end gap-4">
+      <div className="h-14 flex-1 min-w-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
+            <XAxis dataKey="t" hide /><YAxis hide domain={[0, "dataMax"]} />
+            <Line type="stepAfter" dataKey="n" stroke="rgb(var(--ink))" strokeWidth={1.25} dot={false} isAnimationActive={false} />
+            <ReferenceDot x={peak.t} y={peak.n} r={3.5} fill="rgb(var(--tape))" stroke="none" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="text-xs text-ink-2 shrink-0 w-36 leading-snug">
+        Peak <b className="text-ink tnum">{peak.n}</b> notable events in the minute from <span className="font-mono">{new Date(peak.t).toISOString().slice(11, 16)}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function SummaryPage() {
   const { id = "" } = useParams();
+  const nav = useNavigate();
   const q = useSummary(id);
+  const ev = useEvents(id, { severity: ["Critical", "High", "Medium", "Low"] });
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorState error={q.error} />;
   const s = q.data!;
-  if (!s.analyzed) return <Card><Empty title="This case has not been analyzed yet" hint={<>Collect evidence, then run <code className="font-mono">forensight analyze --case {id}</code>, or open <Link className="text-accent" to={`/cases/${id}/collect`}>Live collection</Link>.</>} /></Card>;
+  if (!s.analyzed) return (
+    <Empty title="This case has not been analyzed yet"
+      hint={<>Collected evidence is waiting. Run <code className="font-mono text-xs">forensight analyze --case {id}</code>, or watch a collection arrive on the live page.</>}
+      action={<Link to={`/cases/${id}/collect`} className="text-sm underline">Open live collection</Link>} />
+  );
   const h = s.host || {};
+  const events = ev.data?.items ?? [];
+  const start = s.attack_start ? Date.parse(s.attack_start) : 0;
+  const end = s.attack_end ? Date.parse(s.attack_end) : 0;
+  const pad = Math.max(30_000, (end - start) * 0.03);
+  const total = SEVERITIES.reduce((n, k) => n + (s.severity_counts[k] ?? 0), 0) || 1;
+  const replayAt = (eid: number) => {
+    const order = events.filter((e) => e.severity === "Critical" || e.severity === "High");
+    const i = order.findIndex((e) => e.id === eid);
+    useReplay.getState().setIndex(i);
+    nav(`/cases/${id}/story`);
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Row 1: gauge + verdict + duration */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-1" bodyClass="flex flex-col items-center pt-6">
-          <ScoreGauge score={s.score} verdict={s.verdict} />
-          <div className="mt-2"><VerdictBadge verdict={s.verdict} size="lg" /></div>
-        </Card>
-        <Card className="lg:col-span-2" title="What happened">
-          <p className="text-[14px] leading-relaxed">{s.exec_summary}</p>
-          <div className="grid sm:grid-cols-3 gap-3 mt-4">
-            <div className="rounded-md border border-border p-3"><div className="text-[12px] text-muted flex items-center gap-1"><Clock size={12} />Attack duration</div>
-              <div className="text-xl font-bold mt-1">{fmtDuration(s.duration_seconds)}</div><div className="text-[12px] text-muted">{fmtTime(s.attack_start)} → {fmtTime(s.attack_end)} UTC</div></div>
-            <div className="rounded-md border border-border p-3"><div className="text-[12px] text-muted">Findings / events</div>
-              <div className="text-xl font-bold mt-1">{s.findings} <span className="text-muted text-base font-normal">/ {s.events}</span></div><div className="text-[12px] text-muted">{s.techniques.length} ATT&CK techniques</div></div>
-            <div className="rounded-md border border-border p-3"><div className="text-[12px] text-muted flex items-center gap-1"><Fingerprint size={12} />Evidence</div>
-              <div className="text-xl font-bold mt-1">{s.artifacts}</div><div className="text-[12px] text-muted">artifacts, SHA-256 chained</div></div>
+    <div className="max-w-[1180px] space-y-6">
+      {/* the case, stated plainly */}
+      <section className="grid lg:grid-cols-[1fr_360px] gap-x-10 gap-y-6 rise">
+        <div className="min-w-0">
+          <h1 className="h-display text-3xl" style={{ textWrap: "balance" } as any}>
+            {(HEADLINE[s.verdict] ?? HEADLINE.Clean)(h.hostname ?? s.case.host)}
+          </h1>
+          <p className="font-serif text-lg leading-relaxed text-ink mt-3 max-w-[64ch]">{(s.exec_summary ?? "").split(" Sequence (UTC):")[0]}</p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Link to={`/cases/${id}/story`} className="inline-flex items-center gap-1.5 rounded bg-ink text-paper px-3 h-8 text-sm font-medium hover:bg-tape transition-colors">
+              Replay the attack<ArrowRight size={14} /></Link>
+            <Link to={`/cases/${id}/report`} className="inline-flex items-center rounded border border-rule bg-sheet px-3 h-8 text-sm font-medium hover:border-ink-2 transition-colors">Open the signed report</Link>
+          </div>
+        </div>
+        <div className="space-y-5 lg:pt-1">
+          <div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm text-ink-2">Compromise score</span>
+              <span className="tnum"><b className="text-2xl font-semibold" style={{ color: VERDICT_COLOR[s.verdict] }}>{s.score}</b><span className="text-ink-2 text-sm"> of 100</span></span>
+            </div>
+            <ScoreScale score={s.score} />
+          </div>
+          <table className="w-full text-sm" aria-label="Findings by severity">
+            <tbody>
+              {SEVERITIES.slice(0, 4).map((k: Severity) => (
+                <tr key={k} className="border-t border-rule first:border-t-0">
+                  <td className="py-1.5 w-24"><SeverityBadge severity={k} /></td>
+                  <td className="py-1.5"><div className="h-1.5 rounded-full" style={{ width: `${(100 * (s.severity_counts[k] ?? 0)) / total}%`, minWidth: s.severity_counts[k] ? 4 : 0, background: SEV_VAR[k] }} /></td>
+                  <td className="py-1.5 w-10 text-right tnum font-medium">{s.severity_counts[k] ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* signature: the attack measured on the forensic scale */}
+      {s.attack_start && (
+        <Card title={`The attack lasted ${fmtDuration(s.duration_seconds)}`}
+          note={<>From <span className="font-mono">{fmtTime(s.attack_start)}</span> to <span className="font-mono">{fmtTime(s.attack_end)}</span> UTC on {s.attack_start.slice(0, 10)}. Each mark is a notable event; tall marks are High or Critical. Click one to replay from there.</>}>
+          <TimeScale start={start - pad} end={end + pad} onMark={replayAt}
+            marks={events.map((e) => ({ t: Date.parse(e.timestamp_utc), severity: e.severity, id: e.id, label: e.description.slice(0, 80) }))} />
+          <TimeScaleLabels start={start - pad} end={end + pad} count={7} />
+          <div className="mt-4 pt-4 border-t border-rule grid md:grid-cols-[1fr_auto] gap-6 items-end">
+            <ActivityRate times={events.map((e) => Date.parse(e.timestamp_utc))} start={start} end={end} />
+            <dl className="flex gap-6 text-sm">
+              <div><dt className="label">Findings</dt><dd className="text-lg font-semibold tnum">{s.findings}</dd></div>
+              <div><dt className="label">Timeline events</dt><dd className="text-lg font-semibold tnum">{s.events}</dd></div>
+              <div><dt className="label">Hashed artifacts</dt><dd className="text-lg font-semibold tnum">{s.artifacts}</dd></div>
+            </dl>
           </div>
         </Card>
-      </div>
-      {/* Row 2: severity counts */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {SEVERITIES.slice(0, 4).map((sev) => (
-          <Link key={sev} to={`/cases/${id}/findings`} className="bg-surface border border-border rounded-lg px-4 py-3 hover:border-accent/50" style={{ borderLeft: `4px solid ${SEV_COLOR[sev]}` }}>
-            <div className="text-[12px] uppercase tracking-wide text-muted">{sev}</div>
-            <div className="text-3xl font-extrabold tabular-nums mt-1" style={{ color: SEV_COLOR[sev] }}>{s.severity_counts[sev]}</div>
-          </Link>
-        ))}
-      </div>
-      {/* Row 3: top findings + host + tactic strip */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card title="Top 5 findings" className="lg:col-span-2" actions={<Link to={`/cases/${id}/findings`} className="text-accent text-[12px]">All findings →</Link>}>
-          {!s.top_findings.length ? <Empty title="No findings" hint="Nothing suspicious detected." /> : (
-            <ul className="divide-y divide-border">
+      )}
+
+      <div className="grid lg:grid-cols-[1fr_360px] gap-6">
+        <Card title="Look at these first" actions={<Link to={`/cases/${id}/findings`} className="text-sm underline text-ink-2 hover:text-ink">All {s.findings} findings</Link>}>
+          {!s.top_findings.length ? <Empty title="Nothing to look at" hint="No rule matched on this host. The full timeline is still available for manual review." /> : (
+            <ol className="divide-y divide-rule -mt-1">
               {s.top_findings.map((f) => (
-                <li key={f.id} className="py-2.5 flex gap-3">
-                  <SeverityBadge severity={f.severity} className="mt-0.5" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{f.title} <span className="font-mono text-[12px] text-muted">{f.attck_id}</span></div>
-                    <div className="text-[13px] text-muted truncate" title={f.description}>{f.description}</div>
-                    <div className="mt-1 flex flex-wrap gap-1">{f.evidence.slice(0, 2).map((e) => <EvidenceChip key={e.ref} evidenceRef={e.ref} />)}</div>
+                <li key={f.id} className="py-3 grid grid-cols-[5.5rem_1fr] gap-x-4">
+                  <div className="pt-0.5"><SeverityBadge severity={f.severity} /><div className="font-mono text-2xs text-ink-2 mt-1">{fmtTime(f.first_seen)}</div></div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-ink">{f.title} <span className="font-mono text-2xs text-ink-2 ml-1">{f.attck_id}</span></div>
+                    <div className="text-sm text-ink-2 line-clamp-2 break-words mt-0.5">{f.description}</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">{f.evidence.slice(0, 2).map((e) => <EvidenceChip key={e.ref} evidenceRef={e.ref} />)}</div>
                   </div>
-                  <span className="font-mono text-[12px] text-muted shrink-0">{fmtTime(f.first_seen)}</span>
                 </li>
               ))}
-            </ul>
+            </ol>
           )}
         </Card>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <Card title="Host">
-            <div className="space-y-1.5 text-[13px]">
-              <div className="flex items-center gap-2 font-semibold text-base"><Monitor size={16} className="text-accent" />{h.hostname}</div>
-              {[["OS", `${h.os ?? ""} ${h.os_version ?? ""}`], ["IP", h.ip], ["Timezone", h.timezone], ["Investigator", s.case.investigator], ["Opened", fmtDateTime(s.case.created_at)],
-                ["Collection", s.collection?.profile]].filter(([, v]) => v).map(([k, v]) => (
-                <div key={k} className="flex justify-between gap-3"><span className="text-muted">{k}</span><Mono>{v}</Mono></div>
+            <div className="font-serif text-xl -mt-1 mb-2">{h.hostname}</div>
+            <dl className="grid grid-cols-[6.5rem_1fr] gap-y-1.5 text-sm">
+              {[["System", `${h.os ?? ""} ${h.os_version ?? ""}`], ["Address", h.ip], ["Time zone", h.timezone], ["Investigator", s.case.investigator],
+                ["Case opened", fmtDateTime(s.case.created_at)], ["Collection", s.collection?.profile]].filter(([, v]) => v && String(v).trim()).map(([k, v]) => (
+                <div key={k} className="contents"><dt className="text-ink-2">{k}</dt><dd><Mono className="text-ink">{v}</Mono></dd></div>
               ))}
-            </div>
+            </dl>
           </Card>
-          <Card title="Kill chain" actions={<Link to={`/cases/${id}/attack`} className="text-accent text-[12px]">Heatmap →</Link>}>
-            <div className="flex flex-wrap items-center gap-1 text-[12px]">
-              {s.tactics.map((t, i) => (
-                <span key={t.tactic} className="inline-flex items-center gap-1">
-                  <span className="rounded px-2 py-1 bg-accent/10 border border-accent/30 text-accent">{t.tactic} <b>{t.count}</b></span>
-                  {i < s.tactics.length - 1 && <span className="text-muted">→</span>}
-                </span>
-              ))}
-              {!s.tactics.length && <span className="text-muted">No techniques detected</span>}
-            </div>
+          <Card title="Path through ATT&CK" actions={<Link to={`/cases/${id}/attack`} className="text-sm underline text-ink-2 hover:text-ink">Map</Link>}>
+            {!s.tactics.length ? <p className="text-sm text-ink-2">No techniques detected.</p> : (
+              <ol className="relative ml-1.5 border-l border-ink/70 space-y-2 -mt-1">
+                {s.tactics.map((t) => (
+                  <li key={t.tactic} className="pl-4 relative text-sm">
+                    <span className="absolute -left-[4.5px] top-[7px] w-2 h-2 rounded-full bg-ink" aria-hidden />
+                    <span className="font-medium">{t.tactic}</span>
+                    <span className="text-ink-2"> · {t.techniques.map((x) => x.id).join(", ")}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </Card>
           {s.engines && (
-            <Card title="Engines"><div className="text-[12px] text-muted space-y-1">
-              <div className="flex items-center gap-1.5"><Cpu size={12} />Volatility 3: {s.engines.volatility ? "memory analysed" : "no memory output"}</div>
-              <div>{s.engines.custom_rules} custom rules · {s.engines.sigma_rules} Sigma rules ({s.engines.chainsaw ? "Chainsaw" : "built-in engine"})</div>
-              <div>Threat intel: {s.engines.online_intel ? "online (hash/IP only)" : "offline lists"}</div></div></Card>
+            <p className="text-xs text-ink-2 leading-relaxed px-1">
+              Analysed with {s.engines.custom_rules} custom rules and {s.engines.sigma_rules} Sigma rules ({s.engines.chainsaw ? "Chainsaw" : "built-in engine"}),
+              YARA, {s.engines.volatility ? "Volatility 3 memory analysis" : "no memory analysis"} and {s.engines.online_intel ? "online" : "offline"} threat intel.
+            </p>
           )}
         </div>
       </div>

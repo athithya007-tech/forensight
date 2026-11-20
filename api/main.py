@@ -335,14 +335,15 @@ def report_pdf(case_id: str, download: bool = False):
 
 
 @app.get("/api/cases/{case_id}/report/file/{name}")
-def report_file(case_id: str, name: str):
+def report_file(case_id: str, name: str, inline: bool = False):
     d = resolve_case(case_id)
     if "/" in name or ".." in name:
         raise HTTPException(400, "bad name")
     p = d / "report" / name
     if not p.exists():
         raise HTTPException(404, f"{name} not found")
-    return FileResponse(p, media_type=_MEDIA.get(p.suffix, "application/octet-stream"), filename=f"{case_id}_{name}")
+    return FileResponse(p, media_type=_MEDIA.get(p.suffix, "application/octet-stream"), filename=f"{case_id}_{name}",
+                        content_disposition_type="inline" if inline else "attachment")
 
 
 @app.get("/api/verify/{case_id}")

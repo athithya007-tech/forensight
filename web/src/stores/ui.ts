@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 function initialTheme(): "dark" | "light" {
-  try { return (localStorage.getItem("fs-theme") as "dark" | "light") || "dark"; } catch { return "dark"; }
+  try { return (localStorage.getItem("fs-theme") as "dark" | "light") || "light"; } catch { return "light"; }
 }
 interface UiState {
   chatOpen: boolean; evidenceRef: string | null; theme: "dark" | "light"; sidebarOpen: boolean;

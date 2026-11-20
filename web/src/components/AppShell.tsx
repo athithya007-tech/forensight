@@ -1,6 +1,6 @@
 import {
-  Activity, ArrowLeftRight, Clapperboard, Cpu, FileText, Fingerprint, GitFork, Grid3x3, LayoutDashboard, ListTree, Menu, Moon, Network,
-  ShieldAlert, Sparkles, Sun, X,
+  Activity, ArrowLeftRight, ChevronRight, Clapperboard, Cpu, FileText, Fingerprint, GitFork, Grid3x3, LayoutDashboard, Menu, Moon, Network,
+  Radio, ShieldAlert, Sparkles, Sun, X,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { Link, NavLink, useParams } from "react-router-dom";
@@ -8,22 +8,28 @@ import { useSummary } from "../api/client";
 import { useUi } from "../stores/ui";
 import { ChatDrawer } from "./ChatDrawer";
 import { EvidenceDrawer } from "./EvidenceChip";
-import { VERDICT_COLOR, VerdictBadge } from "./SeverityBadge";
+import { VerdictBadge } from "./SeverityBadge";
 import { cx } from "./ui";
 
-const NAV = [
-  { to: "", label: "Summary", icon: LayoutDashboard, end: true },
-  { to: "story", label: "Attack story", icon: Clapperboard },
-  { to: "timeline", label: "Timeline", icon: Activity },
-  { to: "graph", label: "Attack graph", icon: GitFork },
-  { to: "findings", label: "Findings", icon: ShieldAlert },
-  { to: "attack", label: "ATT&CK", icon: Grid3x3 },
-  { to: "processes", label: "Processes", icon: Cpu },
-  { to: "network", label: "Network", icon: Network },
-  { to: "diff", label: "Baseline diff", icon: ArrowLeftRight },
-  { to: "evidence", label: "Evidence", icon: Fingerprint },
-  { to: "report", label: "Report", icon: FileText },
-  { to: "collect", label: "Live collection", icon: ListTree },
+const NAV: { heading: string; items: { to: string; label: string; icon: any; end?: boolean }[] }[] = [
+  { heading: "Read the case", items: [
+    { to: "", label: "Summary", icon: LayoutDashboard, end: true },
+    { to: "story", label: "Attack story", icon: Clapperboard },
+    { to: "timeline", label: "Timeline", icon: Activity },
+    { to: "graph", label: "Attack graph", icon: GitFork },
+  ] },
+  { heading: "Examine", items: [
+    { to: "findings", label: "Findings", icon: ShieldAlert },
+    { to: "attack", label: "ATT&CK map", icon: Grid3x3 },
+    { to: "processes", label: "Processes", icon: Cpu },
+    { to: "network", label: "Network", icon: Network },
+    { to: "diff", label: "Baseline diff", icon: ArrowLeftRight },
+  ] },
+  { heading: "Custody", items: [
+    { to: "evidence", label: "Evidence", icon: Fingerprint },
+    { to: "report", label: "Report", icon: FileText },
+    { to: "collect", label: "Live collection", icon: Radio },
+  ] },
 ];
 
 export function ThemeSync() {
@@ -32,71 +38,88 @@ export function ThemeSync() {
   return null;
 }
 
-export function Brand() {
+/** Wordmark: the case-file serif with the evidence-tape mark. */
+export function Brand({ onRail = false }: { onRail?: boolean }) {
   return (
-    <Link to="/" className="flex items-center gap-2 font-extrabold tracking-wide">
-      <span className="w-7 h-7 rounded-md bg-accent/15 border border-accent/40 grid place-items-center text-accent text-[13px]">FS</span>
-      <span>Foren<span className="text-accent">Sight</span></span>
+    <Link to="/" className={cx("inline-flex items-center gap-2.5", onRail ? "text-rail-ink" : "text-ink")} aria-label="ForenSight, all cases">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
+        <rect x="1" y="1" width="20" height="20" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="1" y="14" width="20" height="4" fill="rgb(var(--tape))" />
+        <path d="M5 1v5M9 1v3M13 1v5M17 1v3" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+      <span className="font-serif text-xl font-medium tracking-[-0.01em]">ForenSight</span>
     </Link>
   );
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ onRail = false }: { onRail?: boolean }) {
   const { theme, toggleTheme } = useUi();
   return (
-    <button onClick={toggleTheme} className="p-2 rounded-md text-muted hover:text-text hover:bg-surface2" title="Toggle theme" aria-label="Toggle theme">
+    <button onClick={toggleTheme} title={theme === "light" ? "Switch to night shift" : "Switch to daylight"} aria-label="Toggle theme"
+      className={cx("w-8 h-8 grid place-items-center rounded transition-colors duration-150", onRail ? "text-rail-ink/70 hover:text-rail-ink hover:bg-rail-2" : "text-ink-2 hover:text-ink hover:bg-well")}>
       {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
     </button>
   );
 }
 
-/** Left sidebar + top bar + main area; sidebar collapses below 1024 px (PRD 15.3). */
+/** Shell: ink rail with grouped navigation, a paper work area, a slim case bar (PRD 15.3). */
 export function CaseShell({ children }: { children: ReactNode }) {
   const { id = "" } = useParams();
   const s = useSummary(id);
   const { sidebarOpen, setSidebar, setChat } = useUi();
-  const v = s.data?.verdict;
+  const c = s.data?.case;
   return (
     <div className="h-full flex">
       <ThemeSync />
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebar(false)} />}
-      <nav className={cx("fixed lg:static z-40 h-full w-60 shrink-0 bg-surface border-r border-border flex flex-col transition-transform",
+      {sidebarOpen && <div className="fixed inset-0 bg-ink/40 z-30 lg:hidden" onClick={() => setSidebar(false)} />}
+      <nav aria-label="Case navigation" className={cx("fixed lg:static z-40 h-full w-60 shrink-0 bg-rail text-rail-ink flex flex-col transition-transform duration-200 ease-out",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}>
-        <div className="px-4 py-4 border-b border-border flex items-center justify-between"><Brand />
-          <button className="lg:hidden text-muted" onClick={() => setSidebar(false)} aria-label="Close menu"><X size={18} /></button></div>
-        <div className="px-4 py-3 border-b border-border">
-          <div className="font-semibold truncate" title={s.data?.case?.name}>{s.data?.case?.name ?? "…"}</div>
-          <div className="text-[12px] text-muted truncate">{s.data?.case?.host} · {s.data?.case?.investigator}</div>
-          <div className="mt-2"><VerdictBadge verdict={v} /></div>
+        <div className="px-5 h-14 flex items-center justify-between border-b border-rail-2"><Brand onRail />
+          <button className="lg:hidden text-rail-ink/70 p-1" onClick={() => setSidebar(false)} aria-label="Close menu"><X size={18} /></button></div>
+        <div className="px-5 py-4 border-b border-rail-2">
+          <div className="font-serif text-lg leading-tight truncate" title={c?.name}>{c?.name ?? "Loading case"}</div>
+          <div className="text-xs text-rail-ink/60 mt-1 truncate">{c?.host} · {c?.investigator}</div>
         </div>
-        <div className="flex-1 overflow-auto py-2">
-          {NAV.map((n) => (
-            <NavLink key={n.to} to={`/cases/${id}${n.to ? `/${n.to}` : ""}`} end={n.end} onClick={() => setSidebar(false)}
-              className={({ isActive }) => cx("flex items-center gap-2.5 mx-2 px-3 py-2 rounded-md text-[13.5px]",
-                isActive ? "bg-accent/15 text-accent font-medium" : "text-muted hover:text-text hover:bg-surface2")}>
-              <n.icon size={16} />{n.label}
-            </NavLink>
+        <div className="flex-1 overflow-auto py-3">
+          {NAV.map((g) => (
+            <div key={g.heading} className="mb-3">
+              <div className="px-5 pb-1 text-2xs text-rail-ink/45">{g.heading}</div>
+              {g.items.map((n) => (
+                <NavLink key={n.to} to={`/cases/${id}${n.to ? `/${n.to}` : ""}`} end={n.end} onClick={() => setSidebar(false)}
+                  className={({ isActive }) => cx("relative flex items-center gap-2.5 mx-2 px-3 h-8 rounded text-sm transition-colors duration-150",
+                    isActive ? "bg-rail-ink text-rail font-medium" : "text-rail-ink/75 hover:text-rail-ink hover:bg-rail-2")}>
+                  <n.icon size={15} strokeWidth={1.75} />{n.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </div>
-        <div className="px-4 py-3 border-t border-border text-[11px] text-muted">localhost only · evidence stays on this machine</div>
+        <div className="px-5 py-3 border-t border-rail-2 flex items-center justify-between">
+          <span className="text-2xs text-rail-ink/50 leading-snug">Bound to localhost.<br />Evidence never leaves this machine.</span>
+          <ThemeToggle onRail />
+        </div>
       </nav>
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 shrink-0 border-b border-border bg-surface/80 backdrop-blur flex items-center gap-3 px-4">
-          <button className="lg:hidden text-muted" onClick={() => setSidebar(true)} aria-label="Open menu"><Menu size={20} /></button>
-          <span className="font-mono text-[13px] truncate">{id}</span>
+        <header className="h-14 shrink-0 border-b border-rule bg-paper flex items-center gap-3 px-4 lg:px-8">
+          <button className="lg:hidden text-ink-2 p-1" onClick={() => setSidebar(true)} aria-label="Open menu"><Menu size={20} /></button>
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm min-w-0">
+            <Link to="/" className="text-ink-2 hover:text-ink">Cases</Link>
+            <ChevronRight size={14} className="text-ink-2 shrink-0" />
+            <span className="font-mono text-xs text-ink truncate">{id}</span>
+          </nav>
           {s.data?.analyzed && (
-            <span className="inline-flex items-center gap-1.5 text-[13px]">
-              <span className="text-muted">score</span>
-              <b className="tabular-nums" style={{ color: v ? VERDICT_COLOR[v] : undefined }}>{s.data.score}</b>
+            <span className="hidden sm:inline-flex items-center gap-2 ml-2">
+              <VerdictBadge verdict={s.data.verdict} />
+              <span className="text-xs text-ink-2 tnum">score <b className="text-ink font-semibold">{s.data.score}</b>/100</span>
             </span>
           )}
           <div className="flex-1" />
-          <button onClick={() => setChat(true)} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-accent/50 bg-accent/10 text-accent px-3 py-1.5 text-[13px] hover:bg-accent/20">
-            <Sparkles size={14} />Ask AI
+          <button onClick={() => setChat(true)}
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded border border-ink px-3 h-8 text-sm font-medium text-ink hover:bg-ink hover:text-paper transition-colors duration-150">
+            <Sparkles size={14} />Ask the evidence
           </button>
-          <ThemeToggle />
         </header>
-        <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto px-4 py-6 lg:px-8">{children}</main>
       </div>
       <ChatDrawer caseId={id} />
       <EvidenceDrawer />

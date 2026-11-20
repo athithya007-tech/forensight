@@ -4,7 +4,8 @@ import { useDiff } from "../api/client";
 import type { DiffItem } from "../api/types";
 import { Card, Empty, ErrorState, Loading, Mono, PageHeader, cx, fmtDateTime } from "../components/ui";
 
-const CH = { Added: "#22C55E", Removed: "#EF4444", Modified: "#F59E0B" } as const;
+const CH = { Added: "rgb(var(--ok))", Removed: "rgb(var(--sev-critical))", Modified: "rgb(var(--sev-medium))" } as const;
+const SIGN = { Added: "+", Removed: "−", Modified: "~" } as const;
 const LABEL: Record<string, string> = { users: "Users", groups: "Groups", services: "Services", tasks: "Tasks", run_keys: "Run keys", ports: "Ports", startup: "Startup files", programs: "Programs" };
 
 function BeforeAfterPanel({ item }: { item: DiffItem }) {
@@ -12,8 +13,8 @@ function BeforeAfterPanel({ item }: { item: DiffItem }) {
   return (
     <div className="grid md:grid-cols-2 gap-3">
       {[["Before (baseline)", item.before], ["After (incident)", item.after]].map(([t, v]) => (
-        <div key={t as string}><div className="text-[11px] uppercase text-muted mb-1">{t as string}</div>
-          <pre className="bg-bg border border-border rounded p-2 font-mono text-[12px] whitespace-pre-wrap break-all min-h-[60px]">{fmt(v)}</pre></div>
+        <div key={t as string}><div className="text-2xs text-ink-2 mb-1">{t as string}</div>
+          <pre className="bg-well border border-rule rounded p-2.5 font-mono text-xs whitespace-pre-wrap break-all min-h-[60px]">{fmt(v)}</pre></div>
       ))}
     </div>
   );
@@ -37,25 +38,26 @@ export default function DiffPage() {
       <PageHeader title="Baseline diff" subtitle={<>Clean baseline {fmtDateTime(d.baseline_taken)} → incident {fmtDateTime(d.incident_taken)} UTC · {d.items.length} changes</>} />
       {!cats.length ? <Card><Empty title="Nothing changed" hint="Users, groups, services, tasks, Run keys, startup files, ports and programs match the baseline." /></Card> : (
         <>
-          <div className="flex flex-wrap gap-1 border-b border-border">
+          <div className="flex flex-wrap gap-1 border-b border-rule">
             {cats.map((c) => {
               const n = d.categories[c];
               return (
-                <button key={c} onClick={() => { setTab(c); setSel(null); }} className={cx("px-3 py-2 text-[13px] border-b-2 -mb-px", active === c ? "border-accent text-accent" : "border-transparent text-muted hover:text-text")}>
-                  {LABEL[c] ?? c} <span className="text-[11px]">{(["Added", "Removed", "Modified"] as const).map((k) => n[k] ? <span key={k} style={{ color: CH[k] }}> {k[0]}{n[k]}</span> : null)}</span>
+                <button key={c} onClick={() => { setTab(c); setSel(null); }} className={cx("px-3 py-2 text-sm border-b-2 -mb-px", active === c ? "border-ink text-ink" : "border-transparent text-ink-2 hover:text-ink")}>
+                  {LABEL[c] ?? c} <span className="text-2xs">{(["Added", "Removed", "Modified"] as const).map((k) => n[k] ? <span key={k} className="font-mono ml-1" style={{ color: CH[k] }}>{SIGN[k]}{n[k]}</span> : null)}</span>
                 </button>
               );
             })}
           </div>
-          <div className="border border-border rounded-lg overflow-hidden bg-surface">
+          <div className="border border-rule rounded-lg overflow-hidden bg-sheet shadow-sheet">
             {items.map((i) => (
               <div key={i.key}>
-                <button onClick={() => setSel(sel?.key === i.key ? null : i)} className="w-full flex items-center gap-3 px-3 py-2 text-left border-t border-border first:border-0 hover:bg-surface2"
-                  style={{ borderLeft: `4px solid ${CH[i.change]}`, background: `${CH[i.change]}12` }}>
-                  <span className="text-[11px] font-bold uppercase w-20" style={{ color: CH[i.change] }}>{i.change}</span>
-                  <Mono>{i.key}</Mono>
+                <button onClick={() => setSel(sel?.key === i.key ? null : i)} aria-expanded={sel?.key === i.key}
+                  className="w-full grid grid-cols-[1.5rem_6rem_1fr] items-center gap-2 px-4 py-2.5 text-left border-t border-rule first:border-0 hover:bg-amber/[0.07] transition-colors">
+                  <span className="font-mono text-base font-medium" style={{ color: CH[i.change] }} aria-hidden>{SIGN[i.change]}</span>
+                  <span className="text-xs font-medium" style={{ color: CH[i.change] }}>{i.change}</span>
+                  <Mono className="text-ink">{i.key}</Mono>
                 </button>
-                {sel?.key === i.key && <div className="p-3 border-t border-border"><BeforeAfterPanel item={i} /></div>}
+                {sel?.key === i.key && <div className="p-3 border-t border-rule"><BeforeAfterPanel item={i} /></div>}
               </div>
             ))}
           </div>

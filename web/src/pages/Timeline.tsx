@@ -36,12 +36,12 @@ export default function TimelinePage() {
           <TimelineView events={events} phases={s.data?.phases} currentId={sel} focusOnCurrent={false} height={380}
             onSelect={(eid) => { setSel(eid); const e = byId.get(eid); if (e) open(e.evidence_ref); }} />
           <DataTable<TimelineEvent> rows={events} onRowClick={(e) => { setSel(e.id); open(e.evidence_ref); }}
-            rowClass={(e) => (e.id === sel ? "bg-accent/10" : "")}
+            rowClass={(e) => (e.id === sel ? "bg-amber/15" : "")}
             columns={[
               { key: "t", header: "Time (UTC)", width: "110px", sort: (e) => e.timestamp_utc, render: (e) => <Mono>{e.timestamp_utc.slice(11, 23)}</Mono> },
               { key: "sev", header: "Severity", width: "90px", sort: (e) => ["Info", "Low", "Medium", "High", "Critical"].indexOf(e.severity), render: (e) => <SeverityBadge severity={e.severity} /> },
-              { key: "att", header: "ATT&CK", width: "90px", render: (e) => <Mono className="text-muted">{e.attck_id}</Mono> },
-              { key: "d", header: "Event", render: (e) => <div><div>{e.description}</div><div className="text-[11.5px] text-muted">{e.phase} · {e.event_type}</div></div> },
+              { key: "att", header: "ATT&CK", width: "90px", render: (e) => <Mono className="text-ink-2">{e.attck_id}</Mono> },
+              { key: "d", header: "Event", render: (e) => <div><div>{e.description}</div><div className="text-xs text-ink-2">{e.phase} · {e.event_type}</div></div> },
               { key: "src", header: "Evidence", width: "230px", render: (e) => <EvidenceChip evidenceRef={e.evidence_ref} /> },
             ]} />
         </>
