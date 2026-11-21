@@ -9,9 +9,12 @@ work out what the attacker did, and tell the story in minutes instead of hours.*
 
 ### 🔗 Live demo: **[athithya007-tech.github.io/forensight](https://athithya007-tech.github.io/forensight/)**
 
+### 📽️ Pitch deck: **[ForenSight-Pitch-Deck.pdf](docs/ForenSight-Pitch-Deck.pdf)**
+
 <sub>Opens in any browser, no install. Four simulated lab cases: replay the attack, verify the evidence, download the signed PDF.</sub>
 
 [![Live demo](https://img.shields.io/badge/live%20demo-open%20in%20browser-C2281D?style=for-the-badge)](https://athithya007-tech.github.io/forensight/)
+[![Pitch deck](https://img.shields.io/badge/pitch%20deck-PDF-C07C56?style=for-the-badge)](docs/ForenSight-Pitch-Deck.pdf)
 [![Quick start](https://img.shields.io/badge/quick%20start-5%20minutes-1C1B18?style=for-the-badge)](#quick-start-5-minutes)
 
 ![Version](https://img.shields.io/badge/version-1.2.0-1C1B18)
