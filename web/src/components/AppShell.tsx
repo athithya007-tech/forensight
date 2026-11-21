@@ -7,7 +7,6 @@ import { useUi } from "../stores/ui";
 import { ChatDrawer } from "./ChatDrawer";
 import { Glyph, type GlyphName } from "./Glyph";
 import { EvidenceDrawer } from "./EvidenceChip";
-import { VerdictBadge } from "./SeverityBadge";
 import { cx } from "./ui";
 
 const NAV: { heading: string; items: { to: string; label: string; icon: GlyphName; end?: boolean }[] }[] = [
@@ -148,12 +147,6 @@ export function CaseShell({ children }: { children: ReactNode }) {
             <ChevronRight size={14} className="text-ink-2 shrink-0" />
             <span className="font-mono text-xs text-ink truncate">{id}</span>
           </nav>
-          {s.data?.analyzed && (
-            <span className="hidden sm:inline-flex items-center gap-2 ml-2">
-              <VerdictBadge verdict={s.data.verdict} />
-              <span className="text-xs text-ink-2 tnum">score <b className="text-ink font-semibold">{s.data.score}</b>/100</span>
-            </span>
-          )}
           <div className="flex-1" />
           <button onClick={() => setChat(true)} aria-label="Ask the evidence"
             className="inline-flex items-center gap-1.5 whitespace-nowrap rounded border border-ink px-3 h-8 text-sm font-medium text-ink hover:bg-ink hover:text-paper transition-colors duration-150">
